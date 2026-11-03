@@ -46,3 +46,10 @@ Scores travel through **ntfy.sh**, a free public message relay, on a topic only 
 ## Credits
 
 All characters, places and story are original. Fonts: Fraunces and DM Sans (SIL Open Font License 1.1). 3D engine: Three.js (MIT License). Score relay: ntfy.sh.
+
+## Round 1 live poll
+
+- `poll.html` — phones vote on the Round 1 question (one vote per phone; changing it keeps the latest).
+- `votes.html` — the big-screen view: live bars for each answer. **New poll** (click twice) clears test votes before the session.
+
+Both use the same ntfy.sh relay as the leaderboard, on their own topic.
