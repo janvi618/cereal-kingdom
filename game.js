@@ -658,9 +658,22 @@ addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
 const T = { jx: 0, jy: 0, id: null, ox: 0, oy: 0, atkHeld: false, atk: false, dash: false, sp: false, talk: false };
 const joy = $('joy'), knob = $('knob'), zone = $('joyZone');
-zone.addEventListener('pointerdown', e => { if (T.id !== null) return; T.id = e.pointerId; T.ox = e.clientX; T.oy = e.clientY; joy.style.left = e.clientX + 'px'; joy.style.top = e.clientY + 'px'; zone.setPointerCapture(e.pointerId); e.preventDefault(); });
-zone.addEventListener('pointermove', e => { if (e.pointerId !== T.id) return; let dx = e.clientX - T.ox, dy = e.clientY - T.oy; const L = Math.hypot(dx, dy), R = 52; if (L > R) { dx *= R / L; dy *= R / L; } T.jx = dx / R; T.jy = -dy / R; knob.style.transform = `translate(${dx}px,${dy}px)`; });
-const joyEnd = e => { if (e.pointerId !== T.id) return; T.id = null; T.jx = T.jy = 0; knob.style.transform = ''; joy.style.left = ''; joy.style.top = ''; };
+zone.addEventListener('pointerdown', e => { if (T.id !== null) return; T.id = e.pointerId; T.ox = e.clientX; T.oy = e.clientY; joy.style.left = e.clientX + 'px'; joy.style.top = e.clientY + 'px'; joy.classList.add('on'); zone.setPointerCapture(e.pointerId); e.preventDefault(); });
+zone.addEventListener('pointermove', e => {
+  if (e.pointerId !== T.id) return;
+  const R = 58; let dx = e.clientX - T.ox, dy = e.clientY - T.oy, L = Math.hypot(dx, dy);
+  // past the rim, the base slides after the thumb so steering never hits a wall
+  if (L > R) { T.ox += dx * (1 - R / L); T.oy += dy * (1 - R / L); joy.style.left = T.ox + 'px'; joy.style.top = T.oy + 'px'; dx = e.clientX - T.ox; dy = e.clientY - T.oy; L = R; }
+  const m = L < 6 ? 0 : Math.min(1, (L / R) / 0.7);         // full speed at 70% of the rim
+  T.jx = L ? dx / L * m : 0; T.jy = L ? -dy / L * m : 0;
+  knob.style.transform = `translate(${dx}px,${dy}px)`;
+});
+const joyEnd = e => { if (e.pointerId !== T.id) return; T.id = null; T.jx = T.jy = 0; knob.style.transform = ''; joy.style.left = ''; joy.style.top = ''; joy.classList.remove('on'); };
+// iPhone: stop Safari's double-tap zoom, magnifier and rubber-banding while playing (pointer events still fire)
+document.addEventListener('touchstart', e => { if (e.target.closest('#joyZone, .tbtn, #scene')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (!e.target.closest('.screen')) e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault());
 zone.addEventListener('pointerup', joyEnd); zone.addEventListener('pointercancel', joyEnd);
 function tbtn(id, down, up){ const b = $(id); b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); down(); }); const u = () => up && up(); b.addEventListener('pointerup', u); b.addEventListener('pointercancel', u); b.addEventListener('contextmenu', e => e.preventDefault()); }
 tbtn('bAtk', () => { T.atk = true; T.atkHeld = true; }, () => { T.atkHeld = false; });
@@ -742,6 +755,7 @@ function updateSpawner(dt){
 }
 
 /* ================= combat ================= */
+const AUTO_REACH = 2.4;   // the spoon swings by itself when a soggy is this close
 function nearestEnemy(maxD){
   let best = null, bd = maxD;
   for (const e of enemies) if (e.alive) { const d = Math.hypot(e.x - P.x, e.z - P.z) - e.r; if (d < bd) { bd = d; best = e; } }
@@ -839,7 +853,8 @@ function updatePlayer(dt, inp){
   P.y = height(P.x, P.z);
   P.moving = Math.hypot(P.vx, P.vz) / 7.4;
   // actions
-  if ((inp.attack || inp.held) && P.atkCd <= 0) startAttack();
+  const inReach = P.dashT <= 0 && nearestEnemy(AUTO_REACH);
+  if ((inp.attack || inp.held || inReach) && P.atkCd <= 0) startAttack();
   if (P.swingT > 0) { P.swingT -= dt; if (!P.swingHit && P.swingT <= P.swingDur - 0.06) { P.swingHit = true; applySwing(); } }
   if (inp.dash && P.dashCd <= 0) {
     const L = Math.hypot(wx, wz); P.dashX = L > 0.1 ? wx / L : Math.sin(P.face); P.dashZ = L > 0.1 ? wz / L : Math.cos(P.face);
@@ -1047,7 +1062,7 @@ function updateCamera(dt){
   camYaw = angLerp(camYaw, camYawT, 1 - Math.exp(-dt * 1.6));
   camFwd.set(-Math.sin(camYaw), 0, -Math.cos(camYaw)); camRight.set(Math.cos(camYaw), 0, -Math.sin(camYaw));
   const portrait = innerHeight > innerWidth;
-  const zoom = (state.stage === 'boss' ? 1.28 : 1) * (portrait ? 1.22 : 1);
+  const zoom = (state.stage === 'boss' ? 1.28 : 1) * (portrait ? 1.42 : isTouch ? 1.12 : 1);
   let rate = 6;
   if (cam.mode === 'intro') { const a = clock * 0.07 + 0.6; desired.set(Math.sin(a) * 118, 50, Math.cos(a) * 118); lookT.set(0, 2, 0); rate = 2; }
   else if (cam.mode === 'cut') { desired.copy(cam.cutPos); lookT.copy(cam.cutLook); rate = 2.2; cam.cutT -= dt; if (cam.cutT <= 0) cam.mode = 'follow'; }
@@ -1083,8 +1098,8 @@ function syncSettings(){ setSeg('segSound', soundOn() ? 'on' : 'off'); setSeg('s
 for (const id of ['segSound', 'segSound2']) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setSound(b.dataset.v === 'on'); store.set('sound', b.dataset.v === 'on'); syncSettings(); });
 for (const id of ['segQ', 'segQ2']) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; applyQuality(b.dataset.v); });
 $('howto').innerHTML = isTouch
-  ? '<div><b>Move</b>Left thumb, anywhere</div><div><b>Attack</b>Tap or hold the red button</div><div><b>Dash</b>Blue button, dodges hits</div><div><b>Burst</b>Fills as you hit; tap when it glows</div>'
-  : '<div><b>Move</b>WASD or arrow keys</div><div><b>Attack</b>J, Space or click</div><div><b>Dash</b>K or Shift</div><div><b>Burst</b>L when the meter glows</div>';
+  ? '<div><b>Move</b>Drag anywhere on the screen</div><div><b>Attack</b>Automatic: just get close</div><div><b>Dash</b>Blue button, dodges hits</div><div><b>Burst</b>Fills as you pop; tap when it glows</div>'
+  : '<div><b>Move</b>WASD or arrow keys</div><div><b>Attack</b>Automatic when close (or J)</div><div><b>Dash</b>K or Shift</div><div><b>Burst</b>L when the meter glows</div>';
 function startGame(){
   if (state.mode !== 'title') return;
   const name = cleanName($('playerName').value);
@@ -1174,7 +1189,7 @@ function frame(now){
   if (state.mode === 'count') {
     state.countT -= dt; const n = Math.ceil(state.countT);
     if (n !== state.countN && n > 0 && n <= 3) { state.countN = n; banner(String(n), n === 3 ? 'Get ready, Sir Crunch' : ''); sfxPlay('ui'); }
-    if (state.countT <= 0) { state.mode = 'play'; banner('Go!', 'Pop every soggy you can'); sfxPlay('level'); state.spawnT = 0.2; }
+    if (state.countT <= 0) { state.mode = 'play'; banner('Go!', isTouch ? 'Drag to move. Your spoon swings by itself.' : 'Run into soggies to pop them'); sfxPlay('level'); state.spawnT = 0.2; }
     updateSites(dt); updatePickups(dt);
   } else if (state.mode === 'play') {
     updatePlayer(simDt, inp); updateSpawner(simDt); updateEnemies(simDt); updateBoss(simDt); updateSites(simDt); updatePickups(simDt);

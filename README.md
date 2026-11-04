@@ -24,8 +24,8 @@ If you get soggy you're back in 2 seconds where you fell. Each phone's best run 
 
 | | Phone | Laptop | Controller |
 |---|---|---|---|
-| Move | Left thumb | WASD or arrows | Left stick |
-| Attack (hold to keep swinging; 3 fast hits = spin) | Red button | J, Space or click | A |
+| Move | Drag anywhere (the pad follows your thumb) | WASD or arrows | Left stick |
+| Attack (automatic when a soggy is close; every third hit spins) | Automatic | Automatic, or J / Space / click | Automatic, or A |
 | Dash | Blue button | K or Shift | B |
 | Crunch Burst (when it glows) | Burst button | L or Q | X |
 | Pause | Pause button | P or Esc | Start |
