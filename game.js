@@ -556,6 +556,58 @@ const beaconMat = new THREE.ShaderMaterial({
 });
 const beacon = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 70, 20, 1, true).translate(0, 35, 0), beaconMat); beacon.renderOrder = 6; scene.add(beacon);
 
+/* ================= guide arrows ================= */
+// A train of glowing chevrons flows along the ground from Sir Crunch to the next Golden Ring (or the Great Sog).
+const ROADS = { meadow: PATHS[0], mountain: PATHS[1], caves: PATHS[2] };
+const chevShape = new THREE.Shape();
+chevShape.moveTo(-0.75, -0.35); chevShape.lineTo(0, 0.35); chevShape.lineTo(0.75, -0.35); chevShape.lineTo(0.75, 0.15); chevShape.lineTo(0, 0.85); chevShape.lineTo(-0.75, 0.15); chevShape.closePath();
+const chevGeo = new THREE.ShapeGeometry(chevShape).rotateX(-Math.PI / 2).rotateY(Math.PI);
+const chevEdge = new THREE.ShapeGeometry(chevShape).rotateX(-Math.PI / 2).rotateY(Math.PI).scale(1.32, 1, 1.32).translate(0, -0.02, -0.06);
+const GUIDE_N = 8, GUIDE_SP = 2.6;
+const guide = [];
+for (let i = 0; i < GUIDE_N; i++) {
+  const gm = () => ({ transparent: true, opacity: 0, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+  const m = new THREE.Mesh(chevGeo, new THREE.MeshBasicMaterial({ color: '#FFD447', ...gm() }));
+  const edge = new THREE.Mesh(chevEdge, new THREE.MeshBasicMaterial({ color: '#14215C', ...gm() })); edge.renderOrder = 4; m.add(edge); m.edge = edge;
+  m.rotation.order = 'YXZ'; m.scale.setScalar(1.55); m.renderOrder = 5; m.visible = false; scene.add(m); guide.push(m);
+}
+function guideRoute(o){
+  const pts = [[P.x, P.z]];
+  const road = o.site && ROADS[o.site.key];
+  if (road) {
+    let bi = -1, bd = 1e9;
+    for (let i = 0; i < road.length - 1; i++) {
+      const [ax, az] = road[i], [bx, bz] = road[i + 1], vx = bx - ax, vz = bz - az;
+      const t = clamp(((P.x - ax) * vx + (P.z - az) * vz) / (vx * vx + vz * vz), 0, 1), d = Math.hypot(P.x - (ax + vx * t), P.z - (az + vz * t));
+      if (d < bd) { bd = d; bi = i; }
+    }
+    if (bd < 14) for (let i = bi + 1; i < road.length - 1; i++) pts.push(road[i]);
+  }
+  pts.push([o.x, o.z]);
+  return pts;
+}
+function updateGuide(o){
+  const on = o && o.x != null && (state.mode === 'play' || state.mode === 'count') && Math.hypot(o.x - P.x, o.z - P.z) > 6;
+  if (!on) { for (const m of guide) m.visible = false; return; }
+  const pts = guideRoute(o), seg = [];
+  let total = 0;
+  for (let i = 0; i < pts.length - 1; i++) { const L = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); seg.push(L); total += L; }
+  const stop = total - (o.site ? 3.4 : (B ? B.r + 2 : 3)), span = GUIDE_N * GUIDE_SP;
+  for (let k = 0; k < GUIDE_N; k++) {
+    const m = guide[k], s = 2.0 + ((k * GUIDE_SP + clock * 3.4) % span);
+    if (s > stop) { m.visible = false; continue; }
+    let i = 0, acc = 0; while (i < seg.length - 1 && acc + seg[i] < s) { acc += seg[i]; i++; }
+    const t = seg[i] ? (s - acc) / seg[i] : 0, [ax, az] = pts[i], [bx, bz] = pts[i + 1];
+    const dx = (bx - ax) / (seg[i] || 1), dz = (bz - az) / (seg[i] || 1), x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+    const hF = height(x + dx * 0.7, z + dz * 0.7), hB = height(x - dx * 0.7, z - dz * 0.7), hC = height(x, z);
+    m.position.set(x, Math.max(hF, hB, hC) + 0.16, z);
+    m.rotation.y = Math.atan2(dx, dz); m.rotation.x = -Math.atan2(hF - hB, 1.4);
+    const f = (s - 2.0) / span;
+    m.material.opacity = 0.97 * smoothstep(0, 0.12, f) * (1 - smoothstep(0.72, 1, f)) * smoothstep(0, 2.5, stop - s); m.edge.material.opacity = m.material.opacity * 0.85;
+    m.visible = true;
+  }
+}
+
 /* ================= boss ================= */
 let B = null;
 const decal = new THREE.Group(); scene.add(decal); decal.visible = false;
@@ -586,7 +638,7 @@ function objective(){
   if (B && B.alive && B.state !== 'dying') return { text: 'The Great Sog! Pop him for +400', x: B.x, z: B.z, beacon: false };
   let best = null, bd = 1e9;
   for (const s of RING_SITES) if (!s.collected) { const d = Math.hypot(s.x - P.x, s.z - P.z); if (d < bd) { bd = d; best = s; } }
-  if (best) return { text: best.cleared ? 'Grab the Golden Ring: +150' : `Bonus: Golden Ring at ${best.name}`, x: best.x, z: best.z, beacon: true };
+  if (best) return { text: best.cleared ? 'Grab the Golden Ring: +150' : `Follow the arrows: Golden Ring at ${best.name}`, x: best.x, z: best.z, beacon: true, site: best };
   return { text: 'Pop every soggy you can!', x: null };
 }
 const camRight = new THREE.Vector3(), camFwd = new THREE.Vector3();
@@ -610,6 +662,7 @@ function updateHud(){
     setText('dist', 'objDist', d < 5 ? 'Here!' : `${Math.round(d)} m away`);
     beacon.visible = o.beacon && d > 7; if (beacon.visible) beacon.position.set(o.x, height(o.x, o.z), o.z);
   } else { $('compass').style.visibility = 'hidden'; setText('dist', 'objDist', ''); beacon.visible = false; }
+  updateGuide(o);
   const sp = $('bSpecial'); const p = Math.floor(P.special); if (sp.dataset.p !== String(p)) { sp.dataset.p = String(p); sp.style.setProperty('--p', p); sp.classList.toggle('ready', p >= 100); }
 }
 let bannerT = 0;
@@ -657,24 +710,24 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
 const T = { jx: 0, jy: 0, id: null, ox: 0, oy: 0, atkHeld: false, atk: false, dash: false, sp: false, talk: false };
-const joy = $('joy'), knob = $('knob'), zone = $('joyZone');
-zone.addEventListener('pointerdown', e => { if (T.id !== null) return; T.id = e.pointerId; T.ox = e.clientX; T.oy = e.clientY; joy.style.left = e.clientX + 'px'; joy.style.top = e.clientY + 'px'; joy.classList.add('on'); zone.setPointerCapture(e.pointerId); e.preventDefault(); });
-zone.addEventListener('pointermove', e => {
-  if (e.pointerId !== T.id) return;
-  const R = 58; let dx = e.clientX - T.ox, dy = e.clientY - T.oy, L = Math.hypot(dx, dy);
-  // past the rim, the base slides after the thumb so steering never hits a wall
-  if (L > R) { T.ox += dx * (1 - R / L); T.oy += dy * (1 - R / L); joy.style.left = T.ox + 'px'; joy.style.top = T.oy + 'px'; dx = e.clientX - T.ox; dy = e.clientY - T.oy; L = R; }
-  const m = L < 6 ? 0 : Math.min(1, (L / R) / 0.7);         // full speed at 70% of the rim
-  T.jx = L ? dx / L * m : 0; T.jy = L ? -dy / L * m : 0;
-  knob.style.transform = `translate(${dx}px,${dy}px)`;
-});
-const joyEnd = e => { if (e.pointerId !== T.id) return; T.id = null; T.jx = T.jy = 0; knob.style.transform = ''; joy.style.left = ''; joy.style.top = ''; joy.classList.remove('on'); };
+// Arrow pad: press or slide anywhere on it; the direction snaps to the nearest of 8 (so two arrows = a diagonal)
+const pad = $('dpad'), padArrows = { up: pad.querySelector('.up'), down: pad.querySelector('.down'), left: pad.querySelector('.left'), right: pad.querySelector('.right') };
+function padSet(e){
+  const r = pad.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  if (Math.hypot(dx, dy) < r.width * 0.11) { T.jx = T.jy = 0; }
+  else { const a = Math.round(Math.atan2(-dy, dx) / (Math.PI / 4)) * (Math.PI / 4); T.jx = Math.abs(Math.cos(a)) < 1e-6 ? 0 : Math.cos(a); T.jy = Math.abs(Math.sin(a)) < 1e-6 ? 0 : Math.sin(a); }
+  padArrows.up.classList.toggle('on', T.jy > 0.3); padArrows.down.classList.toggle('on', T.jy < -0.3);
+  padArrows.right.classList.toggle('on', T.jx > 0.3); padArrows.left.classList.toggle('on', T.jx < -0.3);
+}
+pad.addEventListener('pointerdown', e => { if (T.id !== null) return; T.id = e.pointerId; pad.setPointerCapture(e.pointerId); padSet(e); e.preventDefault(); });
+pad.addEventListener('pointermove', e => { if (e.pointerId === T.id) padSet(e); });
+const padEnd = e => { if (e.pointerId !== T.id) return; T.id = null; T.jx = T.jy = 0; for (const k in padArrows) padArrows[k].classList.remove('on'); };
+pad.addEventListener('pointerup', padEnd); pad.addEventListener('pointercancel', padEnd);
 // iPhone: stop Safari's double-tap zoom, magnifier and rubber-banding while playing (pointer events still fire)
-document.addEventListener('touchstart', e => { if (e.target.closest('#joyZone, .tbtn, #scene')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchstart', e => { if (e.target.closest('#dpad, .tbtn, #scene')) e.preventDefault(); }, { passive: false });
 document.addEventListener('touchmove', e => { if (!e.target.closest('.screen')) e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault());
-zone.addEventListener('pointerup', joyEnd); zone.addEventListener('pointercancel', joyEnd);
 function tbtn(id, down, up){ const b = $(id); b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); down(); }); const u = () => up && up(); b.addEventListener('pointerup', u); b.addEventListener('pointercancel', u); b.addEventListener('contextmenu', e => e.preventDefault()); }
 tbtn('bAtk', () => { T.atk = true; T.atkHeld = true; }, () => { T.atkHeld = false; });
 tbtn('bDash', () => { T.dash = true; });
@@ -1098,7 +1151,7 @@ function syncSettings(){ setSeg('segSound', soundOn() ? 'on' : 'off'); setSeg('s
 for (const id of ['segSound', 'segSound2']) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setSound(b.dataset.v === 'on'); store.set('sound', b.dataset.v === 'on'); syncSettings(); });
 for (const id of ['segQ', 'segQ2']) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; applyQuality(b.dataset.v); });
 $('howto').innerHTML = isTouch
-  ? '<div><b>Move</b>Drag anywhere on the screen</div><div><b>Attack</b>Automatic: just get close</div><div><b>Dash</b>Blue button, dodges hits</div><div><b>Burst</b>Fills as you pop; tap when it glows</div>'
+  ? '<div><b>Move</b>Arrow buttons, bottom left</div><div><b>Attack</b>Automatic: just get close</div><div><b>Rings</b>Follow the gold arrows: +150 each</div><div><b>Burst</b>Tap when it glows</div>'
   : '<div><b>Move</b>WASD or arrow keys</div><div><b>Attack</b>Automatic when close (or J)</div><div><b>Dash</b>K or Shift</div><div><b>Burst</b>L when the meter glows</div>';
 function startGame(){
   if (state.mode !== 'title') return;
@@ -1189,7 +1242,7 @@ function frame(now){
   if (state.mode === 'count') {
     state.countT -= dt; const n = Math.ceil(state.countT);
     if (n !== state.countN && n > 0 && n <= 3) { state.countN = n; banner(String(n), n === 3 ? 'Get ready, Sir Crunch' : ''); sfxPlay('ui'); }
-    if (state.countT <= 0) { state.mode = 'play'; banner('Go!', isTouch ? 'Drag to move. Your spoon swings by itself.' : 'Run into soggies to pop them'); sfxPlay('level'); state.spawnT = 0.2; }
+    if (state.countT <= 0) { state.mode = 'play'; banner('Go!', isTouch ? 'Use the arrows. Follow the gold path to the rings.' : 'Follow the gold arrows to the rings'); sfxPlay('level'); state.spawnT = 0.2; }
     updateSites(dt); updatePickups(dt);
   } else if (state.mode === 'play') {
     updatePlayer(simDt, inp); updateSpawner(simDt); updateEnemies(simDt); updateBoss(simDt); updateSites(simDt); updatePickups(simDt);

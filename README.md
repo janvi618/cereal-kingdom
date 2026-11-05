@@ -20,13 +20,15 @@ A 3-2-1 countdown, then 2 minutes. Soggies keep coming to you; pop them with you
 
 If you get soggy you're back in 2 seconds where you fell. Each phone's best run counts on the leaderboard.
 
+Gold arrows on the ground and a golden beam lead each player to the next Golden Ring (and to the Great Sog when he appears). On iPhone, music plays even when the ring/silent switch is on; players can turn it off on the start screen.
+
 ## Controls
 
 | | Phone | Laptop | Controller |
 |---|---|---|---|
-| Move | Drag anywhere (the pad follows your thumb) | WASD or arrows | Left stick |
+| Move | Arrow pad, bottom left (slide between arrows for diagonals) | WASD or arrows | Left stick |
 | Attack (automatic when a soggy is close; every third hit spins) | Automatic | Automatic, or J / Space / click | Automatic, or A |
-| Dash | Blue button | K or Shift | B |
+| Dash | Not on phones (kept simple) | K or Shift | B |
 | Crunch Burst (when it glows) | Burst button | L or Q | X |
 | Pause | Pause button | P or Esc | Start |
 

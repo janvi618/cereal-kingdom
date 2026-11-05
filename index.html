@@ -87,17 +87,19 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* touch */
 #touch{position:fixed;inset:0;pointer-events:none}
-#joyZone{position:absolute;inset:0;pointer-events:auto;touch-action:none}
+#dpad{position:absolute;left:calc(14px + var(--sl));bottom:calc(16px + var(--sb));width:178px;height:178px;border-radius:50%;background:rgba(20,33,92,.32);border:2px solid rgba(255,251,242,.35);pointer-events:auto;touch-action:none}
+.dp{position:absolute;width:62px;height:62px;border-radius:18px;background:rgba(255,251,242,.9);box-shadow:0 4px 0 rgba(20,33,92,.4);display:grid;place-items:center;transition:background .08s,transform .08s}
+.dp::before{content:"";width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:20px solid var(--ink)}
+.dp.up{left:58px;top:6px}.dp.down{left:58px;bottom:6px}.dp.down::before{transform:rotate(180deg)}
+.dp.left{left:6px;top:58px}.dp.left::before{transform:rotate(-90deg)}.dp.right{right:6px;top:58px}.dp.right::before{transform:rotate(90deg)}
+.dp.on{background:var(--sun);transform:translateY(2px);box-shadow:0 2px 0 rgba(20,33,92,.4)}
 /* stacking: thumb area under the HUD (so Pause stays tappable), screens and dialogs on top */
 #touch{z-index:1} #hud{z-index:2} #bossBar{z-index:2} #dialog,#banner,#toast{z-index:3} .screen{z-index:4}
-#joy{position:absolute;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;background:rgba(255,251,242,.14);border:2px solid rgba(255,251,242,.45);left:calc(96px + var(--sl));top:calc(100% - 120px - var(--sb));pointer-events:none;opacity:.55;transition:opacity .15s}
-#joy.on{opacity:1}
-#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(255,251,242,.85);box-shadow:0 3px 0 rgba(20,33,92,.3)}
 .btns{position:absolute;right:calc(14px + var(--sr));bottom:calc(18px + var(--sb));width:100px;height:190px;pointer-events:none}
 .tbtn{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;border:3px solid rgba(255,251,242,.85);font-weight:700;display:grid;place-items:center;text-shadow:0 1px 2px rgba(0,0,0,.35);-webkit-tap-highlight-color:transparent}
 .tbtn.atk{display:none}
-.tbtn.sp{right:0;bottom:0;width:92px;height:92px;background:conic-gradient(var(--sun) calc(var(--p,0)*1%), rgba(20,33,92,.75) 0);font-size:15px}
-.tbtn.dash{right:6px;bottom:104px;width:76px;height:76px;background:var(--cobalt);font-size:14px}
+.tbtn.sp{right:0;bottom:30px;width:104px;height:104px;background:conic-gradient(var(--sun) calc(var(--p,0)*1%), rgba(20,33,92,.75) 0);font-size:15px}
+.tbtn.dash{display:none}
 .tbtn.sp.ready{animation:glow 1s ease-in-out infinite;color:var(--ink)}
 .tbtn.talk{right:104px;bottom:80px;width:70px;height:70px;background:var(--sun);color:var(--ink);font-size:14px}
 .tbtn:active{transform:scale(.93)}
@@ -199,8 +201,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 <div class="keys hidden" id="keys"><b>WASD</b> move <b>J</b> attack <b>K</b> dash <b>L</b> burst <b>P</b> pause</div>
 
 <div id="touch" class="hidden">
-  <div id="joyZone"></div>
-  <div id="joy"><div id="knob"></div></div>
+  <div id="dpad" aria-hidden="true"><span class="dp up"></span><span class="dp down"></span><span class="dp left"></span><span class="dp right"></span></div>
   <div class="btns">
     <button class="tbtn sp" id="bSpecial" type="button">Burst</button>
     <button class="tbtn dash" id="bDash" type="button">Dash</button>

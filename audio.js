@@ -1,22 +1,37 @@
 // Cereal Kingdom: music and sound effects, made live with the Web Audio API (no audio files).
-let ac = null, master, music, sfx, noiseBuf, enabled = true;
+let ac = null, master, music, sfx, noiseBuf, enabled = true, paused = false;
 let track = null, pending = null, step = 0, nextTime = 0, timer = 0;
 const N = m => 440 * Math.pow(2, (m - 69) / 12);
 
+// iPhone: Web Audio is silenced by the ring/silent switch unless the page's audio session is "playback".
+// Newer iOS lets us ask for that directly; older iOS needs a (silent) HTML audio element playing.
+const SILENT = 'data:audio/wav;base64,UklGRvQHAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YdAHAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+let keepAlive = null;
+function iosPlayback(){
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+  try {
+    if (!keepAlive) { keepAlive = document.createElement('audio'); keepAlive.src = SILENT; keepAlive.loop = true; keepAlive.setAttribute('playsinline', ''); keepAlive.setAttribute('x-webkit-airplay', 'deny'); }
+    if (enabled) { const p = keepAlive.play(); if (p && p.catch) p.catch(() => {}); }
+  } catch {}
+}
 export function initAudio(){
-  if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+  iosPlayback();
+  if (ac) { if (ac.state !== 'running') ac.resume(); return; }
   try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { ac = null; return; }
+  if (ac.state !== 'running') ac.resume();
+  // a phone call or app switch can leave the context "interrupted"; wake it on the next touch
+  document.addEventListener('pointerdown', () => { if (ac && enabled && ac.state !== 'running' && !paused) ac.resume(); }, true);
   master = ac.createGain(); master.gain.value = enabled ? 1 : 0; master.connect(ac.destination);
   const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(master);
-  music = ac.createGain(); music.gain.value = 0.15; music.connect(comp);
+  music = ac.createGain(); music.gain.value = 0.22; music.connect(comp);
   sfx = ac.createGain(); sfx.gain.value = 0.34; sfx.connect(comp);
   noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
   const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   timer = setInterval(schedule, 25);
 }
-export function setSound(on){ enabled = on; if (ac) master.gain.setTargetAtTime(on ? 1 : 0, ac.currentTime, 0.05); }
+export function setSound(on){ enabled = on; if (ac) master.gain.setTargetAtTime(on ? 1 : 0, ac.currentTime, 0.05); if (keepAlive) { if (on) iosPlayback(); else keepAlive.pause(); } }
 export function soundOn(){ return enabled; }
-export function suspendAudio(on){ if (!ac) return; if (on) ac.suspend(); else ac.resume(); }
+export function suspendAudio(on){ paused = on; if (!ac) return; if (on) { ac.suspend(); if (keepAlive) keepAlive.pause(); } else { iosPlayback(); ac.resume(); } }
 
 function tone(type, freq, t, dur, vol, dest = sfx, slide, attack = 0.006){
   const o = ac.createOscillator(), gn = ac.createGain();
