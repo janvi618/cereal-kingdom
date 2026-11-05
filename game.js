@@ -1400,7 +1400,7 @@ function showResults(){
   $('rBoss').textContent = state.bossBeaten ? 'Popped!' : (state.bossSpawned ? 'Escaped' : '-'); $('rCombo').textContent = `×${state.bestMult}`;
   const prev = store.get('bestScore', 0); if (state.score > prev) store.set('bestScore', state.score);
   $('rBest').textContent = state.score > prev && prev ? 'A new personal best on this phone!' : prev ? `Your best on this phone: ${prev.toLocaleString()}` : '';
-  $('results').classList.remove('hidden'); fireworksT = 0;
+  $('results').classList.remove('hidden'); fireworksT = 0; fireworksLeft = 4;
   submitScore();
 }
 let lastEntry = null;
@@ -1415,9 +1415,11 @@ async function submitScore(){
 }
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 $('retryBtn').addEventListener('click', () => submitScore());
-let fireworksT = -1;
+let fireworksT = -1, fireworksLeft = 0;   // a short celebration (about 4 seconds), not an endless one
 function updateFireworks(dt){
-  if (fireworksT < 0) return; fireworksT -= dt;
+  if (fireworksT < 0) return;
+  fireworksLeft -= dt; if (fireworksLeft <= 0) { fireworksT = -1; return; }
+  fireworksT -= dt;
   if (fireworksT <= 0) {
     fireworksT = rand(0.25, 0.6);
     const x = P.x + rand(-18, 18), z = P.z - rand(8, 26), y = P.y + rand(12, 22);
