@@ -16,7 +16,7 @@ const store = {
 let quality = params.get('q') || store.get('quality', isTouch ? 'medium' : 'high');
 setSound(store.get('sound', true));
 const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
-const RUN_SECONDS = 120, BOSS_AT = 45;
+const RUN_SECONDS = 60, BOSS_AT = 30;   // one-minute game: the Great Sog arrives at the halfway mark
 export const BOARD_TOPIC = params.get('board') || 'ck-frontier-x7q2m9';
 const BOARD_URL = 'https://ntfy.sh/' + BOARD_TOPIC;
 function checkCode(id, name, score){ let h = 2166136261; for (const ch of `${id}|${name}|${score}|crunch-2026`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36).toUpperCase().slice(0, 5).padStart(5, '0'); }
@@ -515,7 +515,8 @@ function spawnEnemy(kind, x, z, site){
   const e = { kind, x, z, y: height(x, z), hx: x, hz: z, ...cfg, maxHp: cfg.hp, state: 'idle', t: rand(0, 3), st: 0, cd: rand(0.5, 1.5), kx: 0, kz: 0, face: rand(0, TAU), wx: x, wz: z, wanderT: 0, flash: 0, alive: true, site, m, shadow: blob(cfg.r * 2.2), aggro: 11, bar: null };
   enemies.push(e); if (site) site.enemies.push(e); return e;
 }
-RING_SITES.forEach(s => s.guards.forEach(([k, dx, dz]) => spawnEnemy(k, s.x + dx, s.z + dz, s)));
+// One-minute mode: the three far-off ring sites are scenery; Golden Rings appear near the player instead.
+RING_SITES.forEach(s => { s.collected = true; s.cleared = true; s.ring.visible = s.glow.visible = s.barrier.visible = false; });
 
 
 /* ================= NPCs ================= */
@@ -557,6 +558,37 @@ function dropBerry(x, z){
   g.position.set(x, height(x, z) + 0.6, z); scene.add(g); berries.push({ x, z, g, t: 0 });
 }
 
+/* ================= quick Golden Rings: they come to you ================= */
+const quickRings = []; let ringT = 4;
+const qRingGeo = new THREE.TorusGeometry(1.0, 0.28, 16, 40);
+function spawnQuickRing(){
+  const p = landPointNear(P.x + camFwd.x * 5, P.z + camFwd.z * 5, 8, 13); if (!p) return null;
+  const y = height(p.x, p.z), g = new THREE.Group(); g.position.set(p.x, y, p.z); scene.add(g);
+  const ring = mk(qRingGeo, ringMat); ring.position.y = 2.2; g.add(ring);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#FFD447', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 })); glow.scale.set(5, 5, 1); glow.position.y = 2.2; g.add(glow);
+  const r = { x: p.x, z: p.z, y, g, ring, glow, t: 0 }; quickRings.push(r);
+  burst(sparks, p.x, y + 2.2, p.z, 30, COL.gold, 6, 0.7, 0.5, 0);
+  return r;
+}
+function grabQuickRing(r){
+  scene.remove(r.g); state.rings++; sfxPlay('ring'); state.shake = 0.3;
+  burst(sparks, r.x, r.y + 2.2, r.z, 80, COL.gold, 10, 1.0, 0.7, 1, 0.3);
+  gainXp(6, r.x, r.y + 3, r.z); addScore(150, r.x, r.y + 3.5, r.z, false);
+  banner(`Golden Ring ${state.rings}!`, '+150 points');
+  state.slowT = 0.6; flashScreen('#FFF6C9', 0.45);
+  for (const c of RAINBOW) burst(sparks, r.x, r.y + 2.2, r.z, 14, c, 11, 1.2, 0.6, 6, 0.6);
+  liveEvent('ring', {});
+}
+function updateQuickRings(dt){
+  if (state.mode === 'play' && !state.cine && !state.bossSpawned) { ringT -= dt; if (ringT <= 0 && !quickRings.length) { spawnQuickRing(); ringT = 9; } }
+  for (let i = quickRings.length - 1; i >= 0; i--) {
+    const r = quickRings[i]; r.t += dt;
+    r.ring.rotation.y += dt * 2.2; r.ring.position.y = 2.2 + Math.sin(r.t * 2.5) * 0.2; r.glow.material.opacity = 0.6 + 0.25 * Math.sin(r.t * 3);
+    if (Math.random() < dt * 8) sparks.emit(r.x + rand(-1, 1), r.y + 2.2 + rand(-1, 1), r.z + rand(-0.3, 0.3), 0, rand(0.3, 1), 0, 0.9, 0.3, COL.gold, 0);
+    if (state.mode === 'play' && P.alive && Math.hypot(r.x - P.x, r.z - P.z) < 2.4) { quickRings.splice(i, 1); grabQuickRing(r); }
+  }
+}
+
 /* ================= power-ups ================= */
 // Run over them: no new buttons. One appears every ~15 s, and a Giant Spoon arrives with the Great Sog.
 const POWERS = {
@@ -566,7 +598,7 @@ const POWERS = {
 };
 const RAINBOW = ['#FF5A3C', '#FFD447', '#7CF29A', '#5BD1FF', '#B07CFF', '#FF6FA0'].map(c => new THREE.Color(c));
 const pw = { sugar: 0, spoon: 0, magnet: 0 };
-const powerUps = []; let powerT = 11, powerOrder = [];
+const powerUps = []; let powerT = 6, powerOrder = [];
 function powerModel(kind){
   const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner); inner.position.y = 1.3;
   if (kind === 'sugar') {
@@ -611,7 +643,7 @@ function updatePowerHud(){
 }
 function updatePowers(dt){
   for (const k in pw) if (pw[k] > 0) { pw[k] = Math.max(0, pw[k] - dt); }
-  if (state.mode === 'play' && !state.cine) { powerT -= dt; if (powerT <= 0 && powerUps.length < 2) { spawnPower(); powerT = 15; } }
+  if (state.mode === 'play' && !state.cine) { powerT -= dt; if (powerT <= 0 && powerUps.length < 2) { spawnPower(); powerT = 10; } }
   for (let i = powerUps.length - 1; i >= 0; i--) {
     const u = powerUps[i]; u.t += dt; u.life -= dt;
     u.m.inner.rotation.y += dt * 2.4; u.m.inner.position.y = 1.3 + Math.sin(u.t * 3) * 0.22;
@@ -702,7 +734,7 @@ function spawnBoss(){
   let bx = P.x + camFwd.x * 13, bz = P.z + camFwd.z * 13;
   if (height(bx, bz) < 0.8) { const p = landPointNear(P.x, P.z, 9, 16); if (p) { bx = p.x; bz = p.z; } else { bx = P.x + 7; bz = P.z; } }
   const m = soggyModel('boss'); scene.add(m.g);
-  B = { x: bx, z: bz, y: height(bx, bz) - 7, hp: 30, maxHp: 30, r: 3.1, state: 'emerge', st: 0, slamT: 3.2, sumT: 8, kx: 0, kz: 0, face: Math.atan2(P.x - bx, P.z - bz), flash: 0, phase: 1, m, alive: true, shadow: blob(7), tx: 0, tz: 0, ax: 0, az: 0 };
+  B = { x: bx, z: bz, y: height(bx, bz) - 7, hp: 20, maxHp: 20, r: 3.1, state: 'emerge', st: 0, slamT: 3.2, sumT: 8, kx: 0, kz: 0, face: Math.atan2(P.x - bx, P.z - bz), flash: 0, phase: 1, m, alive: true, shadow: blob(7), tx: 0, tz: 0, ax: 0, az: 0 };
   sky.duskTarget = 1; playTrack('boss'); sfxPlay('bass'); setTimeout(() => sfxPlay('roar'), 450); state.shake = 0.9;
   // cinematic: the clock stops, the camera swings round to watch him rise, and a title card slams in
   state.cine = 2.9; P.inv = Math.max(P.inv, 4.5); P.vx = P.vz = 0;
@@ -723,10 +755,9 @@ function fmtTime(s){ s = Math.floor(s); return Math.floor(s / 60) + ':' + String
 function setText(key, id, v){ if (hud[key] !== v) { hud[key] = v; $(id).textContent = v; } }
 function objective(){
   if (B && B.alive && B.state !== 'dying') return { text: 'The Great Sog! Pop him for +400', x: B.x, z: B.z, beacon: false };
-  let best = null, bd = 1e9;
-  for (const s of RING_SITES) if (!s.collected) { const d = Math.hypot(s.x - P.x, s.z - P.z); if (d < bd) { bd = d; best = s; } }
-  if (best) return { text: best.cleared ? 'Grab the Golden Ring: +150' : `Follow the arrows: Golden Ring at ${best.name}`, x: best.x, z: best.z, beacon: true, site: best };
-  return { text: 'Pop every soggy you can!', x: null };
+  const qr = quickRings[0];
+  if (qr) return { text: 'Follow the arrows: Golden Ring +150', x: qr.x, z: qr.z, beacon: true };
+  return { text: state.bossSpawned ? 'Pop every soggy you can!' : 'Pop soggies! A Golden Ring is on its way', x: null };
 }
 const camRight = new THREE.Vector3(), camFwd = new THREE.Vector3();
 function updateHud(){
@@ -887,11 +918,11 @@ function updateSpawner(dt){
   if (state.chainT > 0) { state.chainT -= dt; if (state.chainT <= 0) { state.chain = 0; state.mult = 1; } }
   state.spawnT -= dt; if (state.spawnT > 0) return;
   const elapsed = RUN_SECONDS - state.timeLeft;
-  const target = Math.min(11, 4 + Math.floor(elapsed / 14)) - (B && B.alive ? 3 : 0);
+  const target = Math.min(11, 5 + Math.floor(elapsed / 7)) - (B && B.alive ? 3 : 0);
   const alive = enemies.filter(e => e.alive && e.invader).length;
   if (alive < target) {
     const p = landPointNear(P.x, P.z, 10, 18);
-    if (p) { const big = elapsed > 25 && Math.random() < 0.16; const e = spawnEnemy(big ? 'big' : 'small', p.x, p.z, null); e.invader = true; e.aggro = 40; e.state = 'rise'; e.st = 0; burst(debris, p.x, height(p.x, p.z) + 0.4, p.z, 16, COL.milk, 5, 0.6, 0.45, 12); }
+    if (p) { const big = elapsed > 12 && Math.random() < 0.16; const e = spawnEnemy(big ? 'big' : 'small', p.x, p.z, null); e.invader = true; e.aggro = 40; e.state = 'rise'; e.st = 0; burst(debris, p.x, height(p.x, p.z) + 0.4, p.z, 16, COL.milk, 5, 0.6, 0.45, 12); }
   }
   state.spawnT = alive < target - 2 ? 0.35 : 0.9;
   for (let i = enemies.length - 1; i >= 0; i--) { const e = enemies[i]; if (e.alive && e.invader && Math.hypot(e.x - P.x, e.z - P.z) > 45) despawn(e); if (!e.alive && !e.site) enemies.splice(i, 1); }
@@ -1330,7 +1361,7 @@ function beginRun(countT){
   $('lobby').classList.add('hidden'); $('hud').classList.remove('hidden');
   if (isTouch) $('touch').classList.remove('hidden'); else $('keys').classList.remove('hidden');
   state.mode = 'count'; state.countT = Math.max(0.5, Math.min(3.4, countT)); state.goAt = performance.now() + state.countT * 1000; state.countN = 0; cam.mode = 'swoop';
-  P.x = 0; P.z = 22.5; P.face = Math.PI; powerT = 11;
+  P.x = 0; P.z = 22.5; P.face = Math.PI; powerT = 6; ringT = 4;
   meTag.innerHTML = `${esc(state.name)}`; meTag.style.setProperty('--c', HEROES[heroKey].tunic);
   pushState('play');
 }
@@ -1423,10 +1454,10 @@ function frame(now){
     if (state.countT <= 0) { state.mode = 'play'; banner('Go!', isTouch ? 'Use the arrows. Follow the gold path to the rings.' : 'Follow the gold arrows to the rings'); sfxPlay('level'); state.spawnT = 0.2; }
     updateSites(dt); updatePickups(dt);
   } else if (state.mode === 'play' && state.cine > 0) {
-    state.cine -= dt; updateBoss(dt * 0.55); updateSites(dt); updatePickups(dt); updatePowers(0);
+    state.cine -= dt; updateBoss(dt * 0.55); updateSites(dt); updatePickups(dt); updatePowers(0); updateQuickRings(dt);
     if (state.cine <= 0) { state.cine = 0; $('bossCard').classList.add('hidden'); document.body.classList.remove('cine'); banner('Pop the Great Sog!', '+400 points · grab the Giant Spoon'); spawnPower('spoon', true); }
   } else if (state.mode === 'play') {
-    updatePlayer(simDt, inp); updateSpawner(simDt); updateEnemies(simDt); updateBoss(simDt); updateSites(simDt); updatePickups(simDt); updatePowers(simDt);
+    updatePlayer(simDt, inp); updateSpawner(simDt); updateEnemies(simDt); updateBoss(simDt); updateSites(simDt); updatePickups(simDt); updatePowers(simDt); updateQuickRings(simDt);
     state.time += dt; state.timeLeft -= dt;
     const sec = Math.ceil(state.timeLeft);
     if (sec <= 10 && sec >= 1 && sec !== state.lastSec) { state.lastSec = sec; bigCount(sec); sfxPlay(sec <= 3 ? 'tock' : 'tick'); }
@@ -1463,7 +1494,7 @@ if (DEBUG) {
     P, state, enemies, RING_SITES,
     tp(x, z){ P.x = x; P.z = z; },
     start(){ startGame(); },
-    rings(n){ RING_SITES.slice(0, n).forEach(s => { s.enemies.forEach(e => e.alive && killEnemy(e)); s.cleared = true; collectRing(s); }); },
+    rings(n){ for (let i = 0; i < n; i++) { const r = quickRings.pop() || spawnQuickRing(); if (r) { const j = quickRings.indexOf(r); if (j >= 0) quickRings.splice(j, 1); grabQuickRing(r); } } }, quickRings: () => quickRings,
     boss(){ state.timeLeft = BOSS_AT + 0.5; },
     end(){ state.timeLeft = 0.05; },
     go(){ if (state.mode === 'count') { state.countT = 0.01; state.goAt = performance.now() + 10; } },

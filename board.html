@@ -134,11 +134,11 @@ li.up{animation:up .7s ease-out}
       <div class="readyrow"><b id="readyN">0</b><span id="readyWord">players ready</span></div>
       <div class="names" id="names"></div>
       <button type="button" class="startbtn" id="startBtn">Start the game for everyone</button>
-      <div class="hint" id="startHint">Wait until most phones say “You’re in”. Everyone gets the same 2 minutes.</div>
+      <div class="hint" id="startHint">Wait until most phones say “You’re in”. Everyone gets the same 1 minute.</div>
     </div>
     <div class="phase hidden" id="liveBox">
       <div class="clockrow">
-        <div class="stat" id="clockStat"><span>Time left</span><b id="clock">2:00</b></div>
+        <div class="stat" id="clockStat"><span>Time left</span><b id="clock">1:00</b></div>
         <div class="stat room"><span>Soggies popped by the room</span><b id="roomPops">0</b></div>
       </div>
       <div class="chips"><span class="chip"><b>Top 10</b> win the book</span><span class="chip">Your <b>best run</b> counts</span></div>
@@ -186,7 +186,7 @@ function checkCode(id, name, score){ let h = 2166136261; for (const ch of `${id}
 const LS = { get(k, d){ try { const v = localStorage.getItem('ckb:' + TOPIC + ':' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v){ try { localStorage.setItem('ckb:' + TOPIC + ':' + k, JSON.stringify(v)); } catch {} } };
 const HERO = { frosted: ['#2340E8', '#FF5A3C'], cocoa: ['#7A4524', '#FFD447'], berry: ['#A43FD6', '#FF6FA0'] };
 const hdot = h => { const c = HERO[h] || HERO.frosted; return `<i class="hdot" style="--c:${c[0]};--k:${c[1]}"></i>`; };
-const RUN = 120, BOSS_AT = 45, CINE = 2.9;          // must match the game
+const RUN = 60, BOSS_AT = 30, CINE = 2.9;          // must match the game
 
 /* ---------- state ---------- */
 let round = LS.get('round', null) || uid(6); LS.set('round', round);
@@ -248,7 +248,7 @@ function onMessage(ch, d, retained){
   }
   if (ch !== 'ev') return;
   const nm = esc(cleanName(d.name) || 'Sir Crunch'), dot = hdot(d.hero);
-  if (d.type === 'ring') tick(`${dot}<span><b>${nm}</b> grabbed the Golden Ring at <em>${esc(d.site || 'the island')}</em></span>`);
+  if (d.type === 'ring') tick(d.site ? `${dot}<span><b>${nm}</b> grabbed the Golden Ring at <em>${esc(d.site)}</em></span>` : `${dot}<span><b>${nm}</b> grabbed a <em>Golden Ring</em> +150</span>`);
   else if (d.type === 'boss') tick(`${dot}<span><b>${nm}</b> popped <em>the Great Sog!</em> +400</span>`);
   else if (d.type === 'pow') tick(`${dot}<span><b>${nm}</b> got <em>${esc(d.label || 'a power-up')}</em></span>`);
   else if (d.type === 'score') { if (acceptScore(d, Math.floor((d.t || Date.now()) / 1000))) tick(`${dot}<span><b>${nm}</b> finished with <em>${(+d.score).toLocaleString()}</em></span>`); }
@@ -351,7 +351,7 @@ function showPhase(){
   $('boardTitle').textContent = phase === 'final' ? 'Final results' : phase === 'live' ? 'Live leaderboard' : 'Leaderboard';
   $('phaseChip').textContent = phase === 'final' ? 'Top 10 win the book' : phase === 'live' ? 'Updating as you play' : 'Top 10 win a prize';
   $('startBtn').textContent = phase === 'final' ? 'Open the lobby for another game' : phase === 'lobby2' ? 'Start the game for everyone' : 'Start the game for everyone';
-  $('startHint').textContent = phase === 'final' ? 'Scores stay on the board. Players tap Play again, then wait.' : 'Wait until most phones say “You’re in”. Everyone gets the same 2 minutes.';
+  $('startHint').textContent = phase === 'final' ? 'Scores stay on the board. Players tap Play again, then wait.' : 'Wait until most phones say “You’re in”. Everyone gets the same 1 minute.';
   render();
 }
 function timeLeft(e){ return e < RUN - BOSS_AT ? RUN - e : e < RUN - BOSS_AT + CINE ? BOSS_AT : Math.max(0, RUN - (e - CINE)); }

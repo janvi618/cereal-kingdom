@@ -1,6 +1,6 @@
 # Cereal Kingdom
 
-A 2-minute 3D score attack for the *Lessons from the Frontier* session, made with AI. Players scan a QR code, type a name and play on their phones (touch), a laptop (keyboard) or with a game controller. A live leaderboard on the big screen shows the top 10.
+A 1-minute 3D score attack for the *Lessons from the Frontier* session, made with AI. Players scan a QR code, type a name and play on their phones (touch), a laptop (keyboard) or with a game controller. A live leaderboard on the big screen shows the top 10.
 
 - **Play:** https://janvi618.github.io/cereal-kingdom/
 - **Big-screen leaderboard (with the QR code):** https://janvi618.github.io/cereal-kingdom/board.html
@@ -8,15 +8,15 @@ A 2-minute 3D score attack for the *Lessons from the Frontier* session, made wit
 
 ## How a run works
 
-A 3-2-1 countdown, then 2 minutes. Soggies keep coming to you; pop them with your spoon.
+A 3-2-1 countdown, then 1 minute. Soggies keep coming to you, and your spoon swings by itself when they're close. A Golden Ring appears near you every few seconds, and the Great Sog arrives at the halfway mark.
 
 | | Points |
 |---|---|
 | Soggy | 10 (Sog Knight 30) |
 | Combo | Pop soggies quickly in a row for ×2, ×3 and ×4 |
 | Crunch bit | 5 |
-| Golden Ring (clear its guards, then walk into it) | 150 each, three on the island |
-| The Great Sog (arrives with 45 seconds left) | 400 |
+| Golden Ring (follow the gold arrows and walk into it) | 150 each, a new one every few seconds until the Great Sog arrives |
+| The Great Sog (arrives with 30 seconds left) | 400 |
 
 If you get soggy you're back in 2 seconds where you fell. Each phone's best run counts on the leaderboard.
 
@@ -53,8 +53,8 @@ All characters, places and story are original. Fonts: Fraunces and DM Sans (SIL 
 
 1. Open `board.html` on the big screen and click **Full screen**. Click anywhere once so its sounds can play.
 2. People scan the QR code, pick a knight (Frosted, Cocoa or Berry), type a name and press **Play**. Each phone says "You're in" and its name pops onto the big screen under **players ready**.
-3. When most phones are in, click **Start the game for everyone**. The big screen and every phone count down 3-2-1 together, everyone gets the same 2 minutes, and the Great Sog arrives for everyone at the same moment.
-4. During the run the big screen shows a live top 10, a **NEW #1** banner with a fanfare when the lead changes, a feed of rings, power-ups and boss pops, and the room's total soggies popped. Final results appear about 2 minutes 5 seconds after the start.
+3. When most phones are in, click **Start the game for everyone**. The big screen and every phone count down 3-2-1 together, everyone gets the same 1 minute, and the Great Sog arrives for everyone at the same moment.
+4. During the run the big screen shows a live top 10, a **NEW #1** banner with a fanfare when the lead changes, a feed of rings, power-ups and boss pops, and the room's total soggies popped. Final results appear about 1 minute 5 seconds after the start.
 5. To play again: click **Open the lobby for another game**, have people tap **Play again**, then **Start** again. Best runs still count. **New round** clears the board.
 
 Phones that open the game when no big screen is waiting start on their own after a few seconds, and anyone can tap **Start on my own** in the lobby.
