@@ -99,7 +99,12 @@ export function sfxPlay(name){
     case 'swing': hiss(t, 0.14, 0.25, sfx, 'bandpass', 900, 3200); break;
     case 'spin': hiss(t, 0.3, 0.3, sfx, 'bandpass', 600, 4000); tone('triangle', 500, t, 0.25, 0.08, sfx, 900); break;
     case 'hit': tone('square', 220, t, 0.08, 0.16, sfx, 90); hiss(t, 0.08, 0.3, sfx, 'lowpass', 2500); break;
-    case 'pop': tone('sine', 700, t, 0.18, 0.3, sfx, 160); hiss(t, 0.12, 0.2, sfx, 'highpass', 2000); break;
+    case 'pop': { const r = 0.85 + Math.random() * 0.35; tone('sine', 700 * r, t, 0.18, 0.3, sfx, 160 * r); hiss(t, 0.1, 0.16, sfx, 'highpass', 2000);
+      for (let i = 0; i < 3; i++) hiss(t + i * 0.024 + Math.random() * 0.01, 0.035, 0.24, sfx, 'bandpass', 1500 + Math.random() * 2800); break; }   // the crunch
+    case 'power': [72, 76, 79, 84, 88, 91].forEach((m, i) => tone('triangle', N(m), t + i * 0.045, 0.22, 0.12)); hiss(t, 0.5, 0.08, sfx, 'highpass', 4000); tone('sine', 220, t, 0.4, 0.2, sfx, 660); break;
+    case 'bass': tone('sine', 120, t, 1.6, 0.55, sfx, 28); tone('sawtooth', 60, t, 1.2, 0.12, sfx, 30); hiss(t, 1.4, 0.22, sfx, 'lowpass', 900, 80); break;
+    case 'tick': tone('square', N(81), t, 0.06, 0.08); break;
+    case 'tock': tone('square', N(88), t, 0.1, 0.12); tone('triangle', N(76), t, 0.14, 0.1); break;
     case 'coin': tone('square', N(88), t, 0.07, 0.07); tone('square', N(93), t + 0.06, 0.12, 0.07); break;
     case 'berry': [76, 79, 84].forEach((m, i) => tone('triangle', N(m), t + i * 0.05, 0.12, 0.12)); break;
     case 'level': [72, 76, 79, 84, 88].forEach((m, i) => tone('square', N(m), t + i * 0.07, 0.18, 0.08)); tone('triangle', N(60), t, 0.6, 0.12); break;

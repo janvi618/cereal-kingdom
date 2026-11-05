@@ -66,35 +66,101 @@ li.fresh{animation:fresh 2.4s ease-out}
 .hidden{display:none !important}
 @media (max-width: 900px){ body{overflow:auto} .wrap{grid-template-columns:1fr;height:auto} .scan{flex-direction:column;align-items:flex-start} .qr{width:min(70vw,320px)} ol{grid-template-rows:none} li{padding:10px 12px} li .rk{width:36px;height:36px;font-size:16px} }
 @media (prefers-reduced-motion: reduce){ li.fresh,.dot.on{animation:none} }
+
+/* ---- room show: lobby, start, live clock, ticker, NEW #1 ---- */
+.phase{display:flex;flex-direction:column;gap:1.6vh}
+.readyrow{display:flex;align-items:baseline;gap:1.2vh;font-weight:700;font-size:clamp(16px,2.8vh,32px)}
+.readyrow b{font-family:var(--display);font-weight:600;font-size:clamp(38px,8vh,92px);color:var(--sun);line-height:1}
+.names{display:flex;flex-wrap:wrap;gap:.8vh;max-height:15vh;overflow:hidden}
+.nchip{display:inline-flex;align-items:center;gap:.7vh;background:rgba(20,33,92,.6);border:2px solid rgba(255,251,242,.45);border-radius:999px;padding:.4vh 1.4vh .4vh .6vh;font-weight:700;font-size:clamp(13px,2.1vh,24px);animation:pop .45s cubic-bezier(.2,1.6,.4,1) both}
+.hdot{width:2.2vh;height:2.2vh;border-radius:50%;background:var(--c,#2340E8);border:.3vh solid var(--k,#FF5A3C);flex:none;display:inline-block}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+.startbtn{font:inherit;font-weight:700;font-size:clamp(18px,3.4vh,40px);border:0;border-radius:2.4vh;padding:2vh 3vw;background:var(--sun);color:var(--ink);box-shadow:0 .8vh 0 #C99A10;cursor:pointer;align-self:flex-start;animation:breathe 2.4s ease-in-out infinite}
+.startbtn:active{transform:translateY(.5vh);box-shadow:0 .3vh 0 #C99A10}
+@keyframes breathe{50%{transform:scale(1.03)}}
+.hint{font-size:clamp(12px,1.9vh,20px);color:var(--mist)}
+.clockrow{display:flex;gap:3vw;align-items:flex-end;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:.4vh}
+.stat span{font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:clamp(11px,1.8vh,20px);color:var(--mist)}
+.stat b{font-family:var(--display);font-weight:600;font-size:clamp(44px,10vh,120px);line-height:1;color:#fff;font-variant-numeric:tabular-nums}
+.stat.low b{color:#FFB29E}
+.stat.room b{color:var(--sun)}
+li .nm{display:flex;align-items:center;gap:1vw}
+li .nm .t{overflow:hidden;text-overflow:ellipsis}
+li .pl{font-size:clamp(10px,1.5vh,16px);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#2BB673;border-radius:999px;padding:.2vh .9vh;flex:none}
+li.up{animation:up .7s ease-out}
+@keyframes up{0%{background:#DFF7E9;transform:translateY(1.2vh)}100%{background:#fff;transform:none}}
+.ticker{position:fixed;left:4vw;right:22vw;bottom:2vh;display:flex;gap:1vw;overflow:hidden;pointer-events:none;flex-wrap:nowrap}
+.tk{flex:none;display:inline-flex;align-items:center;gap:.9vh;background:rgba(20,33,92,.82);border:2px solid rgba(255,212,71,.8);border-radius:999px;padding:.7vh 1.8vh .7vh 1vh;font-weight:700;font-size:clamp(13px,2.2vh,26px);animation:tkIn .5s ease-out both;white-space:nowrap}
+.tk.out{animation:tkOut .6s ease-in both}
+.tk em{font-style:normal;color:var(--sun)}
+@keyframes tkIn{from{transform:translateX(30vw);opacity:0}to{transform:none;opacity:1}}
+@keyframes tkOut{to{transform:translateY(4vh);opacity:0}}
+.over{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:5}
+#bigCount{font-family:var(--display);font-weight:600;font-size:38vh;color:#fff;opacity:0;text-shadow:0 1.6vh 0 rgba(20,33,92,.55)}
+#bigCount.small{font-size:13vh}
+#bigCount.go{animation:bc 1s ease-out both}
+@keyframes bc{0%{opacity:1;transform:scale(1.4)}70%{opacity:.9}100%{opacity:0;transform:scale(.9)}}
+#newOne{background:radial-gradient(ellipse at center, rgba(20,33,92,.88), rgba(20,33,92,0) 70%);text-align:center;opacity:0}
+#newOne.show{animation:n1 3.2s ease-out both}
+#newOne .n1{font-weight:700;letter-spacing:.4em;text-transform:uppercase;font-size:4vh;color:var(--sun)}
+#newOne .nm{font-family:var(--display);font-weight:600;font-size:16vh;line-height:1;color:#fff;text-shadow:0 1.2vh 0 #C9361A}
+#newOne .sc{font-weight:700;font-size:5vh;color:var(--sun);margin-top:1vh}
+@keyframes n1{0%{opacity:0;transform:scale(.6)}12%{opacity:1;transform:scale(1.06)}20%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+#sogAlert{opacity:0}
+#sogAlert.show{animation:n1 2.8s ease-out both}
+#sogAlert div{font-family:var(--display);font-weight:600;font-size:13vh;color:#fff;text-transform:uppercase;text-shadow:0 1.2vh 0 #C9361A,0 0 6vh rgba(255,90,60,.7);text-align:center;line-height:1}
+#sogAlert p{font-weight:700;font-size:4vh;color:var(--sun);text-align:center;margin:1.4vh 0 0}
+.confetti{position:fixed;top:-4vh;width:1.4vh;height:2.2vh;border-radius:.3vh;pointer-events:none;z-index:6;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(112vh) rotate(720deg)}}
+.phasechip{font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:clamp(12px,1.8vh,20px);margin-top:.6vh;color:#C9361A}
+@media (prefers-reduced-motion: reduce){ .startbtn,.nchip,.tk,#newOne.show,#sogAlert.show{animation-duration:.01s !important} .confetti{display:none} }
 </style>
 </head>
 <body>
 <div class="wrap">
   <section class="left">
     <div class="logo">Cereal<br>Kingdom</div>
-    <div class="scan">
+    <div class="scan" id="scanBox">
       <div class="qr" role="img" aria-label="QR code that opens the game"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31 31" shape-rendering="crispEdges"><path fill="#FFFFFF" d="M0 0h31v31H0z"/><path stroke="#14215C" d="M1 1.5h7m4 0h3m2 0h1m1 0h3m1 0h7M1 2.5h1m5 0h1m2 0h10m1 0h1m1 0h1m5 0h1M1 3.5h1m1 0h3m1 0h1m1 0h1m1 0h1m4 0h1m2 0h1m1 0h1m1 0h1m1 0h3m1 0h1M1 4.5h1m1 0h3m1 0h1m1 0h3m2 0h2m2 0h2m1 0h1m1 0h1m1 0h3m1 0h1M1 5.5h1m1 0h3m1 0h1m1 0h2m1 0h2m3 0h5m1 0h1m1 0h3m1 0h1M1 6.5h1m5 0h1m1 0h2m1 0h1m1 0h5m4 0h1m5 0h1M1 7.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M9 8.5h1m1 0h1m3 0h1m3 0h1M1 9.5h1m1 0h5m2 0h1m2 0h3m2 0h1m1 0h1m2 0h5M6 10.5h1m2 0h1m2 0h2m3 0h9m3 0h1M1 11.5h1m4 0h3m1 0h1m1 0h2m1 0h3m1 0h1m2 0h2M3 12.5h1m7 0h1m4 0h2m3 0h1m2 0h3m1 0h1M3 13.5h2m1 0h2m1 0h1m2 0h1m1 0h2m2 0h1m2 0h2m1 0h1m1 0h2M1 14.5h2m1 0h2m3 0h3m2 0h1m3 0h4m1 0h3m3 0h1M3 15.5h1m1 0h4m1 0h1m1 0h5m1 0h1m2 0h1m4 0h2M2 16.5h1m1 0h1m3 0h1m2 0h3m1 0h3m4 0h3m3 0h1M1 17.5h1m1 0h9m2 0h2m2 0h3m1 0h1m3 0h2M1 18.5h2m1 0h3m1 0h1m2 0h1m1 0h2m2 0h5m1 0h3m1 0h1m1 0h1M1 19.5h1m1 0h1m3 0h2m4 0h1m1 0h4m2 0h2m1 0h2m1 0h1M1 20.5h1m1 0h3m2 0h3m1 0h1m2 0h2m3 0h2m3 0h1m2 0h1M1 21.5h1m1 0h1m1 0h5m2 0h1m1 0h1m1 0h1m1 0h1m2 0h5m1 0h3M9 22.5h1m1 0h1m1 0h2m2 0h1m1 0h1m1 0h1m3 0h5M1 23.5h7m2 0h2m2 0h8m1 0h1m1 0h3M1 24.5h1m5 0h1m1 0h2m1 0h2m1 0h3m2 0h2m3 0h1m2 0h2M1 25.5h1m1 0h3m1 0h1m1 0h2m5 0h1m1 0h1m2 0h5m1 0h3M1 26.5h1m1 0h3m1 0h1m1 0h5m3 0h1m1 0h1m1 0h2m3 0h4M1 27.5h1m1 0h3m1 0h1m1 0h2m1 0h1m1 0h1m1 0h1m3 0h2m1 0h6M1 28.5h1m5 0h1m4 0h1m8 0h3m2 0h1m1 0h1M1 29.5h7m1 0h3m2 0h5m3 0h1m4 0h1"/></svg>
 </div>
       <div class="how">
         <div class="big">Scan to play on your phone</div>
-        <div>Pop soggies, grab Golden Rings and beat the Great Sog.</div>
+        <div>Pick a knight, press Play, and wait for the countdown.</div>
         <div class="url">janvi618.github.io/<wbr>cereal-kingdom</div>
       </div>
     </div>
-    <div class="chips"><span class="chip"><b>2 minutes</b> per run</span><span class="chip">Your <b>best run</b> counts</span><span class="chip"><b>Top 10</b> win a prize</span></div>
+    <div class="phase" id="lobbyBox">
+      <div class="readyrow"><b id="readyN">0</b><span id="readyWord">players ready</span></div>
+      <div class="names" id="names"></div>
+      <button type="button" class="startbtn" id="startBtn">Start the game for everyone</button>
+      <div class="hint" id="startHint">Wait until most phones say “You’re in”. Everyone gets the same 2 minutes.</div>
+    </div>
+    <div class="phase hidden" id="liveBox">
+      <div class="clockrow">
+        <div class="stat" id="clockStat"><span>Time left</span><b id="clock">2:00</b></div>
+        <div class="stat room"><span>Soggies popped by the room</span><b id="roomPops">0</b></div>
+      </div>
+      <div class="chips"><span class="chip"><b>Top 10</b> win the book</span><span class="chip">Your <b>best run</b> counts</span></div>
+    </div>
   </section>
   <section class="board" aria-label="Leaderboard">
     <div class="bhead">
-      <div><h1>Leaderboard</h1><div class="prize">Top 10 win a prize</div></div>
+      <div><h1 id="boardTitle">Leaderboard</h1><div class="phasechip" id="phaseChip">Top 10 win a prize</div></div>
       <div class="live"><span class="dot" id="dot"></span><span id="liveText">Connecting…</span></div>
     </div>
     <ol id="list"></ol>
     <div class="more" id="more"></div>
   </section>
 </div>
+<div class="ticker" id="ticker" aria-live="polite"></div>
+<div class="over"><div id="bigCount" aria-live="assertive"></div></div>
+<div class="over" id="newOne" aria-live="assertive"><div><div class="n1">New #1</div><div class="nm" id="newName"></div><div class="sc" id="newScore"></div></div></div>
+<div class="over" id="sogAlert"><div><div>The Great Sog<br>is here!</div><p>Everyone: pop him for +400</p></div></div>
 <div class="tools">
   <button type="button" id="addBtn">Add a score by hand</button>
   <button type="button" id="resetBtn">New round</button>
+  <button type="button" id="soundBtn">Sound on</button>
   <button type="button" id="fullBtn">Full screen</button>
 </div>
 <div class="modal hidden" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
@@ -108,97 +174,247 @@ li.fresh{animation:fresh 2.4s ease-out}
     <div class="row"><button type="button" class="ghost" id="aCancel">Cancel</button><button type="submit">Add</button></div>
   </form>
 </div>
-<script>
-(() => {
-  const params = new URLSearchParams(location.search);
-  const TOPIC = params.get('board') || 'ck-frontier-x7q2m9';
-  const BASE = 'https://ntfy.sh/' + TOPIC;
-  const $ = id => document.getElementById(id);
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const BLOCK = /(fuck|shit|bitch|cunt|dick|piss|slut|whore|nazi|fag|nigg|retard)/i;
-  const cleanName = s => { s = String(s || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16); return BLOCK.test(s) ? 'Sir Crunch' : s; };
-  function checkCode(id, name, score){ let h = 2166136261; for (const ch of `${id}|${name}|${score}|crunch-2026`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36).toUpperCase().slice(0, 5).padStart(5, '0'); }
-  const LS = { get(k, d){ try { const v = localStorage.getItem('ckb:' + TOPIC + ':' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v){ try { localStorage.setItem('ckb:' + TOPIC + ':' + k, JSON.stringify(v)); } catch {} } };
+<script type="module">
+import { createRelay, ntfyStream, ntfyPost, uid } from './relay.js';
+const params = new URLSearchParams(location.search);
+const TOPIC = params.get('board') || 'ck-frontier-x7q2m9', CTL = TOPIC + '-ctl';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const BLOCK = /(fuck|shit|bitch|cunt|dick|piss|slut|whore|nazi|fag|nigg|retard)/i;
+const cleanName = s => { s = String(s || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16); return BLOCK.test(s) ? 'Sir Crunch' : s; };
+function checkCode(id, name, score){ let h = 2166136261; for (const ch of `${id}|${name}|${score}|crunch-2026`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36).toUpperCase().slice(0, 5).padStart(5, '0'); }
+const LS = { get(k, d){ try { const v = localStorage.getItem('ckb:' + TOPIC + ':' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v){ try { localStorage.setItem('ckb:' + TOPIC + ':' + k, JSON.stringify(v)); } catch {} } };
+const HERO = { frosted: ['#2340E8', '#FF5A3C'], cocoa: ['#7A4524', '#FFD447'], berry: ['#A43FD6', '#FF6FA0'] };
+const hdot = h => { const c = HERO[h] || HERO.frosted; return `<i class="hdot" style="--c:${c[0]};--k:${c[1]}"></i>`; };
+const RUN = 120, BOSS_AT = 45, CINE = 2.9;          // must match the game
 
-  let lastId = null, resetAt = 0, live = false, failures = 0;
-  const best = new Map();             // player id -> { name, score, time, fresh }
-  let manual = LS.get('manual', []);  // [{ key, name, score, time }]
+/* ---------- state ---------- */
+let round = LS.get('round', null) || uid(6); LS.set('round', round);
+let phase = 'lobby', startAt = 0, game = null, lastCtl = null;
+let resetAt = LS.get('resetAt', 0), manual = LS.get('manual', []);
+const best = new Map();       // id -> { name, hero, score, time, fresh }  (finished runs; best counts)
+const live = new Map();       // id -> { name, hero, status, score, pops, t }  (this round, from phones)
+const ntfySeen = new Set();
+let mqttUp = false, ntfyUp = false;
 
-  function addEntry(id, name, score, time){
-    const prev = best.get(id);
-    if (!prev || score > prev.score) best.set(id, { name, score, time, fresh: Date.now() });
-    else if (prev.name !== name) prev.name = name;
+/* ---------- sound (unlocked by the host's first click) ---------- */
+let ac = null, soundOn = LS.get('sound', true);
+function unlock(){ if (!ac) try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch {} if (ac && ac.state !== 'running') ac.resume(); }
+function tone(type, f, t, d, v, f2){ const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + 0.05); }
+const N = m => 440 * Math.pow(2, (m - 69) / 12);
+function sfx(name){
+  if (!ac || !soundOn) return; const t = ac.currentTime;
+  if (name === 'beep') tone('square', N(76), t, 0.14, 0.12);
+  if (name === 'go') { [72, 76, 79, 84].forEach((m, i) => tone('square', N(m), t + i * 0.06, 0.4, 0.1)); tone('triangle', N(48), t, 0.8, 0.25); }
+  if (name === 'fanfare') { [[67, 0], [72, 0.12], [76, 0.24], [79, 0.36], [84, 0.52]].forEach(([m, d]) => tone('sawtooth', N(m), t + d, d === 0.52 ? 0.9 : 0.16, 0.07)); [72, 76, 79].forEach(m => tone('triangle', N(m), t + 0.52, 0.9, 0.08)); }
+  if (name === 'roar') { tone('sawtooth', 110, t, 1.2, 0.16, 50); tone('sine', 120, t, 1.4, 0.4, 28); }
+  if (name === 'pop') tone('sine', 720, t, 0.14, 0.12, 200);
+  if (name === 'end') [84, 79, 76, 72].forEach((m, i) => tone('square', N(m), t + i * 0.1, 0.3, 0.09));
+}
+$('soundBtn').textContent = soundOn ? 'Sound on' : 'Sound off';
+$('soundBtn').addEventListener('click', () => { soundOn = !soundOn; LS.set('sound', soundOn); $('soundBtn').textContent = soundOn ? 'Sound on' : 'Sound off'; unlock(); });
+
+/* ---------- live link ---------- */
+const relay = createRelay({
+  room: TOPIC,
+  brokers: params.get('brokers') ? params.get('brokers').split(',') : undefined,
+  onMessage, onStatus: s => { mqttUp = s.up > 0; render(); }
+});
+relay.subscribe('ctl'); relay.subscribe('ev'); relay.subscribe('p/+');
+function publishCtl(extra){
+  const ready = readyCount();
+  lastCtl = relay.publish('ctl', { type: 'ctl', state: phase === 'count' || phase === 'live' ? 'start' : phase, round, game, at: startAt, ready, seen: Date.now(), ...extra }, true);
+  return lastCtl;
+}
+let lastNtfyCtl = 0;
+function postCtlNtfy(force){ if (!force && Date.now() - lastNtfyCtl < 60000) return; lastNtfyCtl = Date.now(); ntfyPost(CTL, { v: 1, type: 'ctl', state: phase === 'count' || phase === 'live' ? 'start' : phase, round, game, at: startAt, seen: Date.now() }, 1); }
+function onMessage(ch, d, retained){
+  if (ch === 'ctl') {
+    // our own retained state from before a reload: pick the show back up
+    if (retained && d.type === 'ctl' && d.round === round && !lastCtl) {
+      if (d.state === 'start' && Date.now() - d.at < (RUN + CINE + 8) * 1000) { startAt = d.at; game = d.game; phase = Date.now() < d.at ? 'count' : 'live'; showPhase(); }
+      else if (d.state === 'final') { startAt = d.at; game = d.game; phase = 'final'; showPhase(); }
+    }
+    return;
   }
-  function handle(m){
+  if (d.round && d.round !== round) return;
+  if (ch.startsWith('p/') && d.type === 'state') {
+    const id = String(d.id || ch.slice(2)).slice(0, 24), prev = live.get(id);
+    if (prev && prev.t > d.t) return;
+    const isNew = !prev;
+    live.set(id, { name: cleanName(d.name) || 'Sir Crunch', hero: d.hero, status: d.status, score: Math.max(0, Math.min(100000, Math.floor(+d.score || 0))), pops: Math.max(0, Math.floor(+d.pops || 0)), t: d.t || Date.now() });
+    if (isNew && d.status === 'lobby' && phase === 'lobby') sfx('pop');
+    scheduleRender(); return;
+  }
+  if (ch !== 'ev') return;
+  const nm = esc(cleanName(d.name) || 'Sir Crunch'), dot = hdot(d.hero);
+  if (d.type === 'ring') tick(`${dot}<span><b>${nm}</b> grabbed the Golden Ring at <em>${esc(d.site || 'the island')}</em></span>`);
+  else if (d.type === 'boss') tick(`${dot}<span><b>${nm}</b> popped <em>the Great Sog!</em> +400</span>`);
+  else if (d.type === 'pow') tick(`${dot}<span><b>${nm}</b> got <em>${esc(d.label || 'a power-up')}</em></span>`);
+  else if (d.type === 'score') { if (acceptScore(d, Math.floor((d.t || Date.now()) / 1000))) tick(`${dot}<span><b>${nm}</b> finished with <em>${(+d.score).toLocaleString()}</em></span>`); }
+}
+function acceptScore(d, time){
+  const score = Math.floor(Number(d.score)); if (!Number.isFinite(score) || score < 0 || score > 100000) return false;
+  if (checkCode(String(d.id), String(d.name), score) !== d.chk) return false;
+  const id = 'p:' + d.id, name = cleanName(d.name) || 'Sir Crunch', prev = best.get(id);
+  if (!prev || score > prev.score) best.set(id, { name, hero: d.hero, score, time, fresh: Date.now() });
+  scheduleRender(); return true;
+}
+// durable scores (and New-round markers) from ntfy
+ntfyStream(TOPIC, {
+  since: 'all',
+  onStatus: up => { ntfyUp = up; render(); },
+  onMessage: m => {
+    if (ntfySeen.has(m.id)) return; ntfySeen.add(m.id);
     let d; try { d = JSON.parse(m.message); } catch { return; }
     if (!d || typeof d !== 'object') return;
-    if (d.type === 'reset') { if (m.time >= resetAt) { resetAt = m.time; best.clear(); manual = manual.filter(x => x.time >= resetAt); LS.set('manual', manual); } return; }
-    if (d.type !== 'score' || m.time < resetAt) return;
-    const score = Math.floor(Number(d.score)); if (!Number.isFinite(score) || score < 0 || score > 100000) return;
-    if (checkCode(String(d.id), String(d.name), score) !== d.chk) return;
-    addEntry('p:' + d.id, cleanName(d.name) || 'Sir Crunch', score, m.time);
+    if (d.type === 'reset') { if (m.time >= resetAt) { resetAt = m.time; LS.set('resetAt', resetAt); best.clear(); manual = manual.filter(x => x.time >= resetAt); LS.set('manual', manual); scheduleRender(); } return; }
+    if (d.type !== 'score' || m.time < resetAt || (d.round && d.round !== round)) return;
+    acceptScore(d, m.time);
   }
-  async function poll(){
-    let wait = 4000;
-    try {
-      const r = await fetch(`${BASE}/json?poll=1&since=${lastId || 'all'}`, { cache: 'no-store' });
-      if (r.status === 429) { wait = 12000; throw new Error('busy'); }
-      if (!r.ok) throw new Error('status ' + r.status);
-      const text = await r.text();
-      for (const line of text.split('\n')) {
-        if (!line.trim()) continue; let m; try { m = JSON.parse(line); } catch { continue; }
-        if (m.event !== 'message') continue; lastId = m.id; handle(m);
-      }
-      live = true; failures = 0;
-    } catch (e) { live = false; failures++; if (failures > 3) wait = 10000; }
-    render();
-    setTimeout(poll, wait);
+});
+
+/* ---------- ticker ---------- */
+function tick(html){
+  const el = document.createElement('div'); el.className = 'tk'; el.innerHTML = html; $('ticker').prepend(el);
+  const all = $('ticker').children; while (all.length > 4) all[all.length - 1].remove();
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 650); }, 9000);
+}
+
+/* ---------- ranking ---------- */
+function rows(){
+  const map = new Map();
+  for (const [k, v] of best) map.set(k, { k, name: v.name, hero: v.hero, score: v.score, time: v.time, fresh: v.fresh, playing: false });
+  for (const [id, v] of live) {
+    const k = 'p:' + id, cur = map.get(k);
+    if (v.status === 'play' && (!cur || v.score > cur.score)) map.set(k, { k, name: v.name, hero: v.hero, score: v.score, time: v.t / 1000, fresh: 0, playing: true });
+    else if (cur && v.status === 'play') cur.playing = true;
   }
-  function rows(){
-    const all = [...best.entries()].map(([k, v]) => ({ k, ...v }));
-    for (const m of manual) if (m.time >= resetAt) all.push({ k: m.key, name: m.name, score: m.score, time: m.time, fresh: m.fresh || 0 });
-    return all.sort((a, b) => b.score - a.score || a.time - b.time);
+  for (const m of manual) if (m.time >= resetAt) map.set(m.key, { k: m.key, name: m.name, score: m.score, time: m.time, fresh: m.fresh || 0 });
+  return [...map.values()].sort((a, b) => b.score - a.score || a.time - b.time);
+}
+function readyCount(){ let n = 0; const now = Date.now(); for (const v of live.values()) if (v.status === 'lobby' && now - v.t < 15 * 60000) n++; return n; }
+let lastHtml = '', lastLeader = null, leaderShownAt = 0, prevRank = new Map(), renderQueued = false;
+function scheduleRender(){ if (!renderQueued) { renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(); }); } }
+function render(){
+  const all = rows(), top = all.slice(0, 10), now = Date.now();
+  let html = '';
+  for (let i = 0; i < 10; i++) {
+    const r = top[i];
+    if (r) {
+      const was = prevRank.get(r.k), up = was != null && was > i ? ' up' : '';
+      html += `<li class="${now - r.fresh < 2500 ? 'fresh' : ''}${up}"><span class="rk">${i + 1}</span><span class="nm">${hdot(r.hero)}<span class="t">${esc(r.name)}</span>${r.playing && phase !== 'final' ? '<span class="pl">Playing</span>' : ''}</span><span class="sc">${r.score.toLocaleString()}</span></li>`;
+    } else html += `<li class="empty"><span class="rk">${i + 1}</span><span class="nm">${i === 0 && !all.length ? (phase === 'lobby' ? 'Scores appear here when the game starts' : 'Waiting for the first score…') : 'Open spot'}</span><span class="sc"></span></li>`;
   }
-  let lastHtml = '';
-  function render(){
-    const all = rows(), top = all.slice(0, 10), now = Date.now();
-    let html = '';
-    for (let i = 0; i < 10; i++) {
-      const r = top[i];
-      html += r ? `<li class="${now - r.fresh < 2500 ? 'fresh' : ''}"><span class="rk">${i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score.toLocaleString()}</span></li>`
-        : `<li class="empty"><span class="rk">${i + 1}</span><span class="nm">${i === 0 && !all.length ? 'Waiting for the first score…' : 'Open spot'}</span><span class="sc"></span></li>`;
-    }
-    if (html !== lastHtml) { $('list').innerHTML = html; lastHtml = html; }
-    const rest = all.slice(10, 20).map((r, i) => `${i + 11}. ${esc(r.name)} <b>${r.score.toLocaleString()}</b>`).join(' · ');
-    $('more').innerHTML = (all.length ? `<b>${all.length}</b> ${all.length === 1 ? 'player' : 'players'} so far` : 'No scores yet this round') + (rest ? ` · ${rest}` : '');
-    $('dot').className = 'dot ' + (live ? 'on' : failures ? 'bad' : '');
-    $('liveText').textContent = live ? 'Live' : failures ? 'Can’t reach scores, retrying' : 'Connecting…';
+  if (html !== lastHtml) { $('list').innerHTML = html; lastHtml = html; }
+  prevRank = new Map(top.map((r, i) => [r.k, i]));
+  const rest = all.slice(10, 20).map((r, i) => `${i + 11}. ${esc(r.name)} <b>${r.score.toLocaleString()}</b>`).join(' · ');
+  $('more').innerHTML = (all.length ? `<b>${all.length}</b> ${all.length === 1 ? 'player' : 'players'} on the board` : '') + (rest ? ` · ${rest}` : '');
+  const up = mqttUp || ntfyUp;
+  $('dot').className = 'dot ' + (up ? 'on' : 'bad');
+  $('liveText').textContent = mqttUp ? 'Live' : ntfyUp ? 'Live (scores only)' : 'Connecting…';
+  // lobby
+  const ready = readyCount();
+  $('readyN').textContent = ready; $('readyWord').textContent = ready === 1 ? 'player ready' : 'players ready';
+  const names = [...live.values()].filter(v => v.status === 'lobby').sort((a, b) => a.t - b.t).slice(-40);
+  const nh = names.map(v => `<span class="nchip">${hdot(v.hero)}${esc(v.name)}</span>`).join('');
+  if ($('names').dataset.h !== nh) { $('names').innerHTML = nh; $('names').dataset.h = nh; }
+  // room counter
+  let pops = 0; for (const v of live.values()) pops += v.pops || 0;
+  roomTarget = pops;
+  // NEW #1
+  if ((phase === 'live' || phase === 'final') && top[0] && top[0].score >= 50 && top[0].k !== lastLeader) {
+    const first = lastLeader === null; lastLeader = top[0].k;
+    if (!first || phase === 'live') newLeader(top[0]);
   }
-  // New round: two-step, posts a reset marker everyone reads
-  let armed = 0;
-  $('resetBtn').addEventListener('click', async () => {
-    if (Date.now() - armed > 3000) { armed = Date.now(); $('resetBtn').textContent = 'Click again to clear the board'; setTimeout(() => { $('resetBtn').textContent = 'New round'; }, 3000); return; }
-    armed = 0; $('resetBtn').textContent = 'Starting a new round…';
-    try { await fetch(BASE, { method: 'POST', body: JSON.stringify({ v: 1, type: 'reset' }) }); } catch {}
-    resetAt = Math.floor(Date.now() / 1000); best.clear(); manual = []; LS.set('manual', manual); render();
-    $('resetBtn').textContent = 'New round';
-  });
-  // add by hand
-  const modal = $('addModal');
-  $('addBtn').addEventListener('click', () => { modal.classList.remove('hidden'); $('aMsg').textContent = ''; $('aName').focus(); });
-  $('aCancel').addEventListener('click', () => modal.classList.add('hidden'));
-  $('addForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const name = cleanName($('aName').value), score = Math.floor(Number(String($('aScore').value).replace(/[^\d]/g, ''))), code = $('aCode').value.trim().toUpperCase();
-    if (!name || !Number.isFinite(score)) { $('aMsg').textContent = 'Add the name and the score.'; return; }
-    if (checkCode('hand', name.toLowerCase(), score) !== code) { $('aMsg').textContent = 'That code doesn’t match this name and score. Check the spelling.'; return; }
-    manual.push({ key: 'm:' + code + ':' + name, name, score, time: Math.floor(Date.now() / 1000), fresh: Date.now() }); LS.set('manual', manual);
-    modal.classList.add('hidden'); $('addForm').reset(); render();
-  });
-  $('fullBtn').addEventListener('click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch {} });
-  addEventListener('keydown', e => { if (e.key === 'Escape') modal.classList.add('hidden'); });
-  render(); poll();
-})();
+}
+let pendingLeader = null;
+function newLeader(r, label = 'New #1'){
+  if (Date.now() - leaderShownAt < 3600) { pendingLeader = r; return; }
+  leaderShownAt = Date.now(); pendingLeader = null;
+  $('newOne').querySelector('.n1').textContent = label; $('newName').textContent = r.name; $('newScore').textContent = r.score.toLocaleString() + ' points';
+  const el = $('newOne'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  sfx('fanfare'); confetti(40);
+}
+function confetti(n){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cols = ['#FFD447', '#FF5A3C', '#5BD1FF', '#FF6FA0', '#7CF29A', '#FFFBF2'];
+  for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.className = 'confetti'; c.style.left = Math.random() * 100 + 'vw'; c.style.background = cols[i % cols.length]; c.style.animationDuration = (2.2 + Math.random() * 1.8) + 's'; c.style.animationDelay = Math.random() * 0.6 + 's'; document.body.appendChild(c); setTimeout(() => c.remove(), 4800); }
+}
+
+/* ---------- the show ---------- */
+let roomShown = 0, roomTarget = 0, lastBeep = null, sogShown = false, endShown = false;
+function showPhase(){
+  $('lobbyBox').classList.toggle('hidden', phase === 'count' || phase === 'live');
+  $('liveBox').classList.toggle('hidden', !(phase === 'count' || phase === 'live' || phase === 'final'));
+  $('scanBox').classList.toggle('hidden', phase === 'live');
+  $('boardTitle').textContent = phase === 'final' ? 'Final results' : phase === 'live' ? 'Live leaderboard' : 'Leaderboard';
+  $('phaseChip').textContent = phase === 'final' ? 'Top 10 win the book' : phase === 'live' ? 'Updating as you play' : 'Top 10 win a prize';
+  $('startBtn').textContent = phase === 'final' ? 'Open the lobby for another game' : phase === 'lobby2' ? 'Start the game for everyone' : 'Start the game for everyone';
+  $('startHint').textContent = phase === 'final' ? 'Scores stay on the board. Players tap Play again, then wait.' : 'Wait until most phones say “You’re in”. Everyone gets the same 2 minutes.';
+  render();
+}
+function timeLeft(e){ return e < RUN - BOSS_AT ? RUN - e : e < RUN - BOSS_AT + CINE ? BOSS_AT : Math.max(0, RUN - (e - CINE)); }
+const fmt = s => { s = Math.ceil(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+function bigCount(txt, small){ const el = $('bigCount'); el.textContent = txt; el.classList.toggle('small', !!small); el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
+function loop(){
+  requestAnimationFrame(loop);
+  const now = Date.now();
+  if (phase === 'count') {
+    const r = (startAt - now) / 1000, n = Math.ceil(r);
+    if (n !== lastBeep && n >= 1 && n <= 3) { lastBeep = n; bigCount(String(n)); sfx('beep'); }
+    if (r > 3 && lastBeep !== 'ready') { lastBeep = 'ready'; bigCount('Get ready!', true); }
+    if (r <= 0) { phase = 'live'; bigCount('GO!'); sfx('go'); showPhase(); }
+  }
+  if (phase === 'live') {
+    const e = (now - startAt) / 1000, tl = timeLeft(e);
+    $('clock').textContent = fmt(tl); $('clockStat').classList.toggle('low', tl <= 10);
+    if (!sogShown && e >= RUN - BOSS_AT) { sogShown = true; const el = $('sogAlert'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); sfx('roar'); }
+    if (e >= RUN + CINE + 1) { phase = 'final'; sfx('end'); showPhase(); publishCtl(); postCtlNtfy(true); setTimeout(() => { const t = rows()[0]; if (t) { leaderShownAt = 0; newLeader(t, 'Top score'); } }, 6000); }
+  }
+  if (pendingLeader && Date.now() - leaderShownAt > 3600) newLeader(pendingLeader);
+  if (roomShown !== roomTarget) { roomShown += Math.max(1, Math.ceil((roomTarget - roomShown) * 0.12)) * Math.sign(roomTarget - roomShown); if (Math.abs(roomTarget - roomShown) < 1) roomShown = roomTarget; $('roomPops').textContent = Math.round(roomShown).toLocaleString(); }
+}
+// host heartbeat so phones know a big screen is waiting
+setInterval(() => { if (phase === 'lobby') { publishCtl(); postCtlNtfy(false); } else if (phase === 'final') publishCtl(); }, 4000);
+setInterval(render, 1000);
+$('startBtn').addEventListener('click', () => {
+  unlock();
+  if (phase === 'final') { phase = 'lobby'; startAt = 0; game = null; for (const v of live.values()) if (v.status !== 'lobby') v.status = 'old'; showPhase(); publishCtl(); postCtlNtfy(true); return; }
+  if (phase !== 'lobby') return;
+  game = uid(6); startAt = Date.now() + 5500; phase = 'count'; lastBeep = null; sogShown = false; lastLeader = null;
+  publishCtl(); postCtlNtfy(true); showPhase();
+});
+
+/* ---------- host tools ---------- */
+let armed = 0;
+$('resetBtn').addEventListener('click', async () => {
+  if (Date.now() - armed > 3000) { armed = Date.now(); $('resetBtn').textContent = 'Click again to clear the board'; setTimeout(() => { $('resetBtn').textContent = 'New round'; }, 3000); return; }
+  armed = 0; $('resetBtn').textContent = 'Starting a new round…';
+  for (const id of live.keys()) relay.clear('p/' + id);
+  round = uid(6); LS.set('round', round); phase = 'lobby'; startAt = 0; game = null; live.clear(); best.clear(); manual = []; LS.set('manual', manual);
+  resetAt = Math.floor(Date.now() / 1000); LS.set('resetAt', resetAt); lastLeader = null;
+  publishCtl(); showPhase();
+  try { await fetch('https://ntfy.sh/' + TOPIC, { method: 'POST', body: JSON.stringify({ v: 1, type: 'reset' }) }); } catch {}
+  postCtlNtfy(true);
+  $('resetBtn').textContent = 'New round';
+});
+const modal = $('addModal');
+$('addBtn').addEventListener('click', () => { modal.classList.remove('hidden'); $('aMsg').textContent = ''; $('aName').focus(); });
+$('aCancel').addEventListener('click', () => modal.classList.add('hidden'));
+$('addForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = cleanName($('aName').value), score = Math.floor(Number(String($('aScore').value).replace(/[^\d]/g, ''))), code = $('aCode').value.trim().toUpperCase();
+  if (!name || !Number.isFinite(score)) { $('aMsg').textContent = 'Add the name and the score.'; return; }
+  if (checkCode('hand', name.toLowerCase(), score) !== code) { $('aMsg').textContent = 'That code doesn’t match this name and score. Check the spelling.'; return; }
+  manual.push({ key: 'm:' + code + ':' + name, name, score, time: Math.floor(Date.now() / 1000), fresh: Date.now() }); LS.set('manual', manual);
+  modal.classList.add('hidden'); $('addForm').reset(); render();
+});
+$('fullBtn').addEventListener('click', async () => { unlock(); try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch {} });
+addEventListener('keydown', e => { if (e.key === 'Escape') modal.classList.add('hidden'); });
+addEventListener('pointerdown', unlock, { once: true });
+setTimeout(() => { if (!lastCtl && phase === 'lobby') { publishCtl(); postCtlNtfy(true); } }, 2500);   // after any retained state has arrived
+showPhase(); loop();
 </script>
 </body>
 </html>

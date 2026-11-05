@@ -2,6 +2,7 @@
 import * as THREE from './vendor/three.module.min.js';
 import { SITES, PATHS, height, groundColor, islandR, pathDist, clamp, lerp, smoothstep, fbm } from './terrain.js';
 import { initAudio, playTrack, sfxPlay, setSound, soundOn, suspendAudio } from './audio.js';
+import { createRelay, ntfyPost, ntfyStream, NTFY } from './relay.js';
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -411,7 +412,7 @@ function heroModel(){
   const head = new THREE.Group(); head.position.y = 1.86; rig.add(head);
   head.add(mk(new THREE.SphereGeometry(0.42, 22, 16), mats.skin));
   const helm = mk(new THREE.SphereGeometry(0.45, 22, 12, 0, TAU, 0, Math.PI * 0.5), mats.silver); helm.position.y = 0.04; helm.rotation.x = -0.12; head.add(helm);
-  const plume = mk(new THREE.ConeGeometry(0.13, 0.55, 10), mats.gold); plume.position.set(0, 0.6, -0.06); plume.rotation.x = -0.35; head.add(plume);
+  mats.plume = MS('#FFD447', 0.35, 0.3); const plume = mk(new THREE.ConeGeometry(0.13, 0.55, 10), mats.plume); plume.position.set(0, 0.6, -0.06); plume.rotation.x = -0.35; head.add(plume);
   const eyeM = new THREE.MeshBasicMaterial({ color: '#14215C' }), hiM = new THREE.MeshBasicMaterial({ color: '#FFFFFF' });
   for (const s of [-1, 1]) { const e = mk(new THREE.SphereGeometry(0.07, 10, 8), eyeM, false); e.position.set(0.15 * s, -0.04, 0.37); e.scale.set(1, 1.35, 0.6); head.add(e); const h = mk(new THREE.SphereGeometry(0.022, 6, 6), hiM, false); h.position.set(0.15 * s + 0.02, 0.0, 0.41); head.add(h); }
   const legs = [], arms = [];
@@ -471,6 +472,14 @@ function villagerModel(color, hat){
 
 /* ================= player ================= */
 const hero = heroModel(); scene.add(hero.root);
+const HEROES = {
+  frosted: { label: 'Frosted', tunic: '#2340E8', cape: '#FF5A3C', plume: '#FFD447' },
+  cocoa:   { label: 'Cocoa',   tunic: '#7A4524', cape: '#FFD447', plume: '#FF5A3C' },
+  berry:   { label: 'Berry',   tunic: '#A43FD6', cape: '#FF6FA0', plume: '#5BD1FF' }
+};
+let heroKey = HEROES[store.get('hero', '')] ? store.get('hero', '') : 'frosted';
+function applyHero(k){ heroKey = HEROES[k] ? k : 'frosted'; const h = HEROES[heroKey]; hero.mats.tunic.color.set(h.tunic); hero.mats.red.color.set(h.cape); hero.mats.plume.color.set(h.plume); }
+applyHero(heroKey);
 const trailMat = new THREE.MeshBasicMaterial({ color: '#FFFBE6', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
 const trail = new THREE.Mesh(new THREE.RingGeometry(1.1, 2.7, 36, 1, -Math.PI * 0.4, Math.PI * 0.8).rotateX(-Math.PI / 2), trailMat); scene.add(trail);
 const spinTrail = new THREE.Mesh(new THREE.RingGeometry(1.0, 3.4, 48).rotateX(-Math.PI / 2), trailMat.clone()); scene.add(spinTrail);
@@ -548,6 +557,78 @@ function dropBerry(x, z){
   g.position.set(x, height(x, z) + 0.6, z); scene.add(g); berries.push({ x, z, g, t: 0 });
 }
 
+/* ================= power-ups ================= */
+// Run over them: no new buttons. One appears every ~15 s, and a Giant Spoon arrives with the Great Sog.
+const POWERS = {
+  sugar:  { label: 'Sugar Rush',  sub: 'Super speed!',              dur: 7, color: '#FF6FA0' },
+  spoon:  { label: 'Giant Spoon', sub: 'Huge swings, double power', dur: 8, color: '#FFD447' },
+  magnet: { label: 'Milk Magnet', sub: 'Coins fly to you',          dur: 8, color: '#5BD1FF' }
+};
+const RAINBOW = ['#FF5A3C', '#FFD447', '#7CF29A', '#5BD1FF', '#B07CFF', '#FF6FA0'].map(c => new THREE.Color(c));
+const pw = { sugar: 0, spoon: 0, magnet: 0 };
+const powerUps = []; let powerT = 11, powerOrder = [];
+function powerModel(kind){
+  const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner); inner.position.y = 1.3;
+  if (kind === 'sugar') {
+    inner.add(mk(new THREE.BoxGeometry(0.85, 0.85, 0.85), MS('#FFFFFF', 0.35, 0, { emissive: '#FFC4DA', emissiveIntensity: 0.35 })));
+    const cols = ['#FF6FA0', '#5BD1FF', '#FFD447', '#7CF29A'];
+    for (let i = 0; i < 12; i++) { const s = mk(new THREE.CapsuleGeometry(0.035, 0.12, 2, 6), M(cols[i % 4]), false); const f = i % 3, sg = i % 2 ? 1 : -1; s.position.set(f === 0 ? 0.43 * sg : rand(-0.3, 0.3), f === 1 ? 0.43 * sg : rand(-0.3, 0.3), f === 2 ? 0.43 * sg : rand(-0.3, 0.3)); s.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3)); inner.add(s); }
+  } else if (kind === 'spoon') {
+    const gold = MS('#FFD447', 0.25, 0.6, { emissive: '#B86E00', emissiveIntensity: 0.4 });
+    const h = mk(new THREE.CylinderGeometry(0.07, 0.09, 1.5, 10), gold); h.position.y = -0.35; inner.add(h);
+    const b = mk(new THREE.SphereGeometry(0.36, 16, 12), gold); b.scale.set(1, 1.4, 0.45); b.position.y = 0.65; inner.add(b);
+    inner.rotation.z = 0.35;
+  } else {
+    const red = MS('#FF4A3C', 0.4, 0.2), steel = MS('#E6EBF3', 0.3, 0.6);
+    inner.add(mk(new THREE.TorusGeometry(0.42, 0.16, 10, 24, Math.PI), red));
+    for (const s of [-1, 1]) { const leg = mk(new THREE.CylinderGeometry(0.16, 0.16, 0.42, 12), red); leg.position.set(0.42 * s, -0.21, 0); inner.add(leg); const tip = mk(new THREE.CylinderGeometry(0.165, 0.165, 0.16, 12), steel); tip.position.set(0.42 * s, -0.5, 0); inner.add(tip); }
+  }
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: POWERS[kind].color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.9 })); glow.scale.set(3.4, 3.4, 1); glow.position.y = 1.3; g.add(glow);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.15, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: POWERS[kind].color, transparent: true, opacity: 0.85, depthWrite: false, toneMapped: false })); ring.position.y = 0.1; g.add(ring);
+  return { g, inner, glow, ring };
+}
+function spawnPower(kind, near){
+  if (!kind) { if (!powerOrder.length) powerOrder = ['sugar', 'spoon', 'magnet'].sort(() => Math.random() - 0.5); kind = powerOrder.pop(); }
+  const p = landPointNear(P.x + camFwd.x * 4, P.z + camFwd.z * 4, near ? 3 : 6, near ? 6 : 11); if (!p) return;
+  const m = powerModel(kind), y = height(p.x, p.z); m.g.position.set(p.x, y, p.z); scene.add(m.g);
+  powerUps.push({ kind, x: p.x, z: p.z, m, life: 22, t: 0 });
+  burst(sparks, p.x, y + 1.3, p.z, 24, new THREE.Color(POWERS[kind].color), 5, 0.6, 0.5, 0);
+}
+function applyPower(kind){
+  const d = POWERS[kind]; pw[kind] = d.dur;
+  sfxPlay('power'); state.shake = Math.max(state.shake, 0.25); flashScreen(d.color, 0.35);
+  banner(d.label + '!', d.sub);
+  burst(sparks, P.x, P.y + 1.2, P.z, 40, new THREE.Color(d.color), 8, 0.7, 0.55, 0);
+  liveEvent('pow', { kind, label: d.label });
+}
+const powChips = {};
+function updatePowerHud(){
+  for (const k in POWERS) {
+    let el = powChips[k];
+    if (pw[k] > 0 && !el) { el = powChips[k] = document.createElement('span'); el.className = 'pchip'; el.style.setProperty('--c', POWERS[k].color); el.innerHTML = `<b>${POWERS[k].label}</b><i></i>`; $('powerChips').appendChild(el); }
+    if (el) { if (pw[k] <= 0) { el.remove(); delete powChips[k]; } else el.lastChild.style.transform = `scaleX(${(pw[k] / POWERS[k].dur).toFixed(3)})`; }
+  }
+}
+function updatePowers(dt){
+  for (const k in pw) if (pw[k] > 0) { pw[k] = Math.max(0, pw[k] - dt); }
+  if (state.mode === 'play' && !state.cine) { powerT -= dt; if (powerT <= 0 && powerUps.length < 2) { spawnPower(); powerT = 15; } }
+  for (let i = powerUps.length - 1; i >= 0; i--) {
+    const u = powerUps[i]; u.t += dt; u.life -= dt;
+    u.m.inner.rotation.y += dt * 2.4; u.m.inner.position.y = 1.3 + Math.sin(u.t * 3) * 0.22;
+    u.m.ring.scale.setScalar(1 + 0.12 * Math.sin(u.t * 5)); u.m.glow.material.opacity = 0.65 + 0.25 * Math.sin(u.t * 4);
+    u.m.g.visible = u.life > 4 || Math.floor(u.life * 6) % 2 === 0;
+    if (state.mode === 'play' && P.alive && Math.hypot(u.x - P.x, u.z - P.z) < 1.9) { scene.remove(u.m.g); powerUps.splice(i, 1); applyPower(u.kind); continue; }
+    if (u.life <= 0) { scene.remove(u.m.g); powerUps.splice(i, 1); }
+  }
+  const big = pw.spoon > 0 ? 2.3 : 1; hero.spoon.scale.setScalar(lerp(hero.spoon.scale.x, big, 1 - Math.exp(-Math.max(dt, 0.016) * 8)));
+  if (pw.sugar > 0 && P.moving > 0.2) for (let i = 0; i < 2; i++) sparks.emit(P.x + rand(-0.3, 0.3), P.y + rand(0.2, 1.0), P.z + rand(-0.3, 0.3), rand(-0.5, 0.5), rand(0.5, 1.5), rand(-0.5, 0.5), 0.6, 0.45, RAINBOW[Math.floor(clock * 12 + i * 3) % RAINBOW.length], 0);
+  if (pw.magnet > 0 && dt > 0) {
+    for (const c of coins) if (c.alive) { const dx = P.x - c.x, dz = P.z - c.z, d = Math.hypot(dx, dz); if (d < 16 && d > 0.01) { const s = Math.min(d, dt * 16); c.x += dx / d * s; c.z += dz / d * s; c.y = lerp(c.y, P.y + 1, 1 - Math.exp(-dt * 6)); } }
+    for (const b of berries) { const dx = P.x - b.x, dz = P.z - b.z, d = Math.hypot(dx, dz); if (d < 16 && d > 0.01) { const s = Math.min(d, dt * 14); b.x += dx / d * s; b.z += dz / d * s; b.g.position.x = b.x; b.g.position.z = b.z; } }
+  }
+  updatePowerHud();
+}
+
 /* ================= beacon ================= */
 const beaconMat = new THREE.ShaderMaterial({
   uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color('#FFD447') } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
@@ -622,8 +703,14 @@ function spawnBoss(){
   if (height(bx, bz) < 0.8) { const p = landPointNear(P.x, P.z, 9, 16); if (p) { bx = p.x; bz = p.z; } else { bx = P.x + 7; bz = P.z; } }
   const m = soggyModel('boss'); scene.add(m.g);
   B = { x: bx, z: bz, y: height(bx, bz) - 7, hp: 30, maxHp: 30, r: 3.1, state: 'emerge', st: 0, slamT: 3.2, sumT: 8, kx: 0, kz: 0, face: Math.atan2(P.x - bx, P.z - bz), flash: 0, phase: 1, m, alive: true, shadow: blob(7), tx: 0, tz: 0, ax: 0, az: 0 };
-  sky.duskTarget = 1; playTrack('boss'); sfxPlay('roar'); state.shake = 0.9;
-  banner('The Great Sog attacks!', 'Pop him for +400');
+  sky.duskTarget = 1; playTrack('boss'); sfxPlay('bass'); setTimeout(() => sfxPlay('roar'), 450); state.shake = 0.9;
+  // cinematic: the clock stops, the camera swings round to watch him rise, and a title card slams in
+  state.cine = 2.9; P.inv = Math.max(P.inv, 4.5); P.vx = P.vz = 0;
+  { const dx = bx - P.x, dz = bz - P.z, dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
+    cam.mode = 'cut'; cam.cutT = 2.7;
+    cam.cutPos.set(P.x - ux * 4 + uz * 7, height(P.x, P.z) + 4.5, P.z - uz * 4 - ux * 7);
+    cam.cutLook.set(bx, height(bx, bz) + 3.5, bz); }
+  const bc = $('bossCard'); bc.classList.remove('hidden', 'go'); void bc.offsetWidth; bc.classList.add('go'); document.body.classList.add('cine');
   $('bossBar').classList.remove('hidden'); updateBossBar();
 }
 function updateBossBar(){ if (B) $('bossFill').style.transform = `scaleX(${Math.max(0, B.hp / B.maxHp)})`; }
@@ -684,8 +771,11 @@ function updateOverlays(dt){
     if (f.t > f.life) { f.el.remove(); fts.splice(i, 1); continue; }
     const s = toScreen(f.x, f.y, f.z); f.el.style.opacity = String(Math.min(1, (f.life - f.t) * 4)); f.el.style.transform = `translate(${s.x}px,${s.y}px) translate(-50%,-50%) scale(${1 + Math.max(0, 0.15 - f.t) * 2})`; f.el.style.display = s.ok ? '' : 'none';
   }
+  const tagOn = (state.mode === 'play' || state.mode === 'count' || state.mode === 'down') && !state.cine;
+  meTag.style.display = tagOn ? '' : 'none';
+  if (tagOn) { const s = toScreen(P.x, P.y + 2.75, P.z); meTag.style.transform = `translate(${s.x}px,${s.y}px) translate(-50%,-100%)`; }
   for (const n of NPCS) {
-    const d = Math.hypot(n.x - P.x, n.z - P.z), show = d < 5.5 && (state.mode === 'play' || state.mode === 'count');
+    const d = Math.hypot(n.x - P.x, n.z - P.z), show = d < 5.5 && (state.mode === 'play' || state.mode === 'count') && !state.cine;
     n.label.style.display = show ? '' : 'none';
     if (show) { const s = toScreen(n.x, n.y + 2.9, n.z); n.label.style.transform = `translate(${s.x}px,${s.y}px) translate(-50%,-100%)`; }
   }
@@ -786,7 +876,7 @@ function talkTo(n){
 function addScore(base, x, y, z, combo){
   let pts = base;
   if (combo) { state.chain++; state.chainT = 3.5; state.mult = state.chain >= 12 ? 4 : state.chain >= 7 ? 3 : state.chain >= 3 ? 2 : 1; state.bestMult = Math.max(state.bestMult, state.mult); pts *= state.mult; }
-  state.score += pts; floatText(x, y, z, `+${pts}`, 'pts');
+  state.score += pts; floatText(x, y, z, `+${pts}`, pts >= 150 ? 'pts big' : pts >= 40 ? 'pts mid' : 'pts');
 }
 function landPointNear(x, z, rMin, rMax){
   for (let i = 0; i < 24; i++) { const a = rand(0, TAU), r = rand(rMin, rMax), px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r; if (height(px, pz) > 0.8 && Math.hypot(px, pz - 11) > 5) return { x: px, z: pz }; }
@@ -824,7 +914,7 @@ function startAttack(){
   sfxPlay(spin ? 'spin' : 'swing');
 }
 function applySwing(){
-  const range = P.spin ? 3.3 : 2.7, dmg = P.dmg + (P.spin ? 1 : 0); let hits = 0;
+  const giant = pw.spoon > 0, range = (P.spin ? 3.3 : 2.7) + (giant ? 1.6 : 0), dmg = (P.dmg + (P.spin ? 1 : 0)) * (giant ? 2 : 1); let hits = 0;
   const targets = enemies.filter(e => e.alive); if (B && B.alive && B.state !== 'emerge' && B.state !== 'dying') targets.push(B);
   for (const e of targets) {
     const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz);
@@ -879,7 +969,7 @@ function hurtPlayer(dmg, fx, fz){
   if (P.hp <= 0) { P.alive = false; state.mode = 'down'; state.downT = 2; state.chain = 0; state.mult = 1; banner('Soggy!', 'Back in 2 seconds'); }
 }
 function doBurst(){
-  P.special = 0; state.shake = 0.7; state.hitstop = 0.08; P.inv = Math.max(P.inv, 0.5); sfxPlay('burst');
+  P.special = 0; state.shake = 0.7; state.hitstop = 0.08; P.inv = Math.max(P.inv, 0.5); sfxPlay('burst'); flashScreen('#FFD447', 0.4);
   shockR = 7.5; shockT = 0; shock.position.set(P.x, P.y + 0.3, P.z); shockMat.color.set('#FFD447');
   for (let i = 0; i < 70; i++) { const a = rand(0, TAU), s = rand(6, 16); debris.emit(P.x, P.y + 0.6, P.z, Math.cos(a) * s, rand(3, 9), Math.sin(a) * s, rand(0.6, 1.1), rand(0.35, 0.7), i % 3 ? COL.crumb : COL.gold, 18); }
   burst(sparks, P.x, P.y + 1, P.z, 50, COL.gold, 12, 0.6, 0.7, 0, 0.2);
@@ -895,7 +985,7 @@ function updatePlayer(dt, inp){
   const wx = camRight.x * inp.mx + camFwd.x * inp.my, wz = camRight.z * inp.mx + camFwd.z * inp.my;
   const moving = inp.mag > 0.12;
   if (P.dashT > 0) { P.dashT -= dt; tvx = P.dashX * 21; tvz = P.dashZ * 21; if (Math.random() < 0.7) debris.emit(P.x, P.y + 0.2, P.z, rand(-1, 1), rand(1, 2), rand(-1, 1), 0.45, 0.45, COL.dust, 2); }
-  else if (moving) { tvx = wx * 7.4; tvz = wz * 7.4; }
+  else if (moving) { const spd = pw.sugar > 0 ? 11.5 : 7.4; tvx = wx * spd; tvz = wz * spd; }
   if (moving && P.swingT <= 0 && P.dashT <= 0) P.face = angLerp(P.face, Math.atan2(wx, wz), 1 - Math.exp(-dt * 16));
   const k = 1 - Math.exp(-dt * (P.dashT > 0 ? 30 : 13)); P.vx += (tvx - P.vx) * k; P.vz += (tvz - P.vz) * k;
   const kd = Math.exp(-dt * 9); P.kx *= kd; P.kz *= kd;
@@ -906,7 +996,7 @@ function updatePlayer(dt, inp){
   P.y = height(P.x, P.z);
   P.moving = Math.hypot(P.vx, P.vz) / 7.4;
   // actions
-  const inReach = P.dashT <= 0 && nearestEnemy(AUTO_REACH);
+  const inReach = P.dashT <= 0 && nearestEnemy(AUTO_REACH + (pw.spoon > 0 ? 1.5 : 0));
   if ((inp.attack || inp.held || inReach) && P.atkCd <= 0) startAttack();
   if (P.swingT > 0) { P.swingT -= dt; if (!P.swingHit && P.swingT <= P.swingDur - 0.06) { P.swingHit = true; applySwing(); } }
   if (inp.dash && P.dashCd <= 0) {
@@ -1059,7 +1149,9 @@ function updateBoss(dt){
 function bossDefeated(){
   B.state = 'dying'; B.st = 0; decal.visible = false; $('bossBar').classList.add('hidden');
   enemies.forEach(e => { if (e.alive && e.minion) killEnemy(e); });
-  state.bossBeaten = true; addScore(400, B.x, B.y + 7, B.z, false);
+  state.bossBeaten = true; addScore(400, B.x, B.y + 7, B.z, false); state.slowT = 1.1; flashScreen('#FFFFFF', 0.6);
+  for (const c of RAINBOW) burst(sparks, B.x, B.y + 5, B.z, 22, c, 14, 1.3, 0.8, 6, 0.6);
+  liveEvent('boss');
   gainXp(40, B.x, B.y + 6, B.z);
   banner('The Great Sog is popped!', '+400 points'); sfxPlay('roar');
 }
@@ -1069,6 +1161,9 @@ function collectRing(s){
   burst(sparks, s.x, s.y + 3, s.z, 80, COL.gold, 10, 1.0, 0.7, 1, 0.3);
   gainXp(6, s.x, s.y + 4, s.z); addScore(150, s.x, s.y + 4.5, s.z, false);
   banner(`Golden Ring ${state.rings} of 3`, '+150 points');
+  state.slowT = 0.75; flashScreen('#FFF6C9', 0.45);
+  for (const c of RAINBOW) burst(sparks, s.x, s.y + 3, s.z, 14, c, 11, 1.2, 0.6, 6, 0.6);
+  liveEvent('ring', { site: s.name });
 }
 function updateSites(dt){
   for (const s of RING_SITES) {
@@ -1153,17 +1248,101 @@ for (const id of ['segQ', 'segQ2']) $(id).addEventListener('click', e => { const
 $('howto').innerHTML = isTouch
   ? '<div><b>Move</b>Arrow buttons, bottom left</div><div><b>Attack</b>Automatic: just get close</div><div><b>Rings</b>Follow the gold arrows: +150 each</div><div><b>Burst</b>Tap when it glows</div>'
   : '<div><b>Move</b>WASD or arrow keys</div><div><b>Attack</b>Automatic when close (or J)</div><div><b>Dash</b>K or Shift</div><div><b>Burst</b>L when the meter glows</div>';
+/* ================= room link: the big screen starts everyone together ================= */
+const CTL_TOPIC = BOARD_TOPIC + '-ctl';
+const net = { up: false, ctl: null, round: null, lobbyAt: 0, fallback: null, startTimer: 0, lastState: 0, tick: 0 };
+const relay = createRelay({
+  room: BOARD_TOPIC,
+  brokers: params.get('brokers') ? params.get('brokers').split(',') : undefined,
+  onMessage: (ch, d) => { if (ch === 'ctl' && d.type === 'ctl') onCtl(d); },
+  onStatus: s => { net.up = s.up > 0; }
+});
+relay.subscribe('ctl');
+function onCtl(d){
+  if (net.ctl && net.ctl.t && d.t && d.t < net.ctl.t) return;      // an older retained copy from the other broker
+  net.ctl = d; if (d.round) net.round = d.round;
+  if (state.mode === 'lobby') lobbyTick();
+}
+const ctlFresh = c => c && Date.now() - (c.seen || c.t || 0) < 120000;
+const hostWaiting = () => net.ctl && net.ctl.state === 'lobby' && ctlFresh(net.ctl);
+function liveStartAt(){ const c = net.ctl; return c && c.state === 'start' && Date.now() - c.at < 150000 ? c.at : null; }
+function myState(status){ return { type: 'state', status, id: DEVICE_ID, name: state.name, hero: heroKey, round: net.round, score: state.score, pops: state.pops, rings: state.rings, boss: state.bossBeaten ? 1 : 0 }; }
+function pushState(status){ relay.publish('p/' + DEVICE_ID, myState(status), true); net.lastState = performance.now(); }
+function liveEvent(type, extra){ relay.publish('ev', { type, id: DEVICE_ID, name: state.name, hero: heroKey, round: net.round, ...extra }); }
+function heroIcon(k){ const h = HEROES[k] || HEROES.frosted; return `<span class="kn" style="--c:${h.tunic};--k:${h.cape};--p:${h.plume}"><i class="b"></i><i class="f"></i><i class="h"></i><i class="p"></i></span>`; }
 function startGame(){
   if (state.mode !== 'title') return;
   const name = cleanName($('playerName').value);
   if (!name) { $('nameErr').textContent = 'Type a name for the leaderboard first.'; $('playerName').focus(); return; }
   state.name = name; store.set('name', name);
   initAudio(); playTrack('adventure'); sfxPlay('ui');
-  $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
-  if (isTouch) $('touch').classList.remove('hidden'); else $('keys').classList.remove('hidden');
-  state.mode = 'count'; state.countT = 3.4; state.countN = 0; cam.mode = 'swoop';
-  P.x = 0; P.z = 22.5; P.face = Math.PI;
+  $('title').classList.add('hidden');
+  enterLobby();
 }
+function enterLobby(){
+  state.mode = 'lobby'; net.lobbyAt = performance.now();
+  $('lobbyName').textContent = state.name; $('lobbyHero').innerHTML = heroIcon(heroKey);
+  $('lobbyMsg').textContent = 'Finding the big screen…'; $('lobbyCountRow').classList.add('hidden');
+  $('lobby').classList.remove('hidden');
+  pushState('lobby'); liveEvent('join');
+  lobbyTick();
+}
+function lobbyTick(){
+  if (state.mode !== 'lobby') return;
+  const at = liveStartAt();
+  if (at) { joinStart(at); return; }
+  if (hostWaiting()) {
+    const n = Math.max(1, net.ctl.ready || 1);
+    $('lobbyCount').textContent = n; $('lobbyCountWord').textContent = n === 1 ? 'player ready' : 'players ready';
+    $('lobbyMsg').textContent = 'Watch the big screen. Everyone starts together.'; $('lobbyCountRow').classList.remove('hidden');
+    return;
+  }
+  const waited = (performance.now() - net.lobbyAt) / 1000;
+  if (!net.up && !net.fallback && waited > 3.5) { startFallback(); return; }
+  if (net.fallback === 'trying') return;
+  if (waited > 4.5) { toast(net.ctl && ctlFresh(net.ctl) ? 'Free play! Your best run still counts.' : 'No big screen running. Starting now!', 2400); beginRun(3.4); }
+}
+async function startFallback(){
+  // the brokers' ports may be blocked on this network: ask ntfy (port 443) whether a big screen is waiting
+  net.fallback = 'trying';
+  try {
+    const r = await fetch(`${NTFY}${CTL_TOPIC}/json?poll=1&since=10m`, { cache: 'no-store' });
+    if (r.ok) for (const line of (await r.text()).split('\n')) { try { const m = JSON.parse(line); if (m.event === 'message') { const d = JSON.parse(m.message); if (d.type === 'ctl') onCtl(d); } } catch {} }
+  } catch {}
+  if (state.mode === 'lobby' && (hostWaiting() || liveStartAt())) {
+    net.fallback = ntfyStream(CTL_TOPIC, { since: '30s', onMessage: m => { try { const d = JSON.parse(m.message); if (d.type === 'ctl') onCtl(d); } catch {} } });
+  } else net.fallback = 'none';
+  lobbyTick();
+}
+function joinStart(at){
+  const remain = (at - Date.now()) / 1000;
+  if (remain > 3.4) {
+    state.mode = 'lobbyGo'; $('lobbyMsg').textContent = 'Here we go! Eyes on your phone…'; $('lobbyCountRow').classList.add('hidden');
+    clearTimeout(net.startTimer); net.startTimer = setTimeout(() => beginRun((at - Date.now()) / 1000), (remain - 3.4) * 1000);
+    return;
+  }
+  if (remain < -3) toast('The game already started. Jump in!', 2200);
+  beginRun(remain > 0.5 ? remain : 3.4);
+}
+function beginRun(countT){
+  if (state.mode !== 'lobby' && state.mode !== 'lobbyGo') return;
+  clearTimeout(net.startTimer); if (net.fallback && net.fallback.close) net.fallback.close();
+  $('lobby').classList.add('hidden'); $('hud').classList.remove('hidden');
+  if (isTouch) $('touch').classList.remove('hidden'); else $('keys').classList.remove('hidden');
+  state.mode = 'count'; state.countT = Math.max(0.5, Math.min(3.4, countT)); state.goAt = performance.now() + state.countT * 1000; state.countN = 0; cam.mode = 'swoop';
+  P.x = 0; P.z = 22.5; P.face = Math.PI; powerT = 11;
+  meTag.innerHTML = `${esc(state.name)}`; meTag.style.setProperty('--c', HEROES[heroKey].tunic);
+  pushState('play');
+}
+$('soloBtn').addEventListener('click', () => { sfxPlay('ui'); beginRun(3.4); });
+const heroPick = $('heroPick');
+function syncHeroPick(){ heroPick.querySelectorAll('.hero').forEach(b => b.setAttribute('aria-checked', String(b.dataset.h === heroKey))); }
+heroPick.querySelectorAll('.hero').forEach(b => { b.insertAdjacentHTML('afterbegin', heroIcon(b.dataset.h)); });
+heroPick.addEventListener('click', e => { const b = e.target.closest('.hero'); if (!b) return; applyHero(b.dataset.h); store.set('hero', heroKey); syncHeroPick(); sfxPlay('ui'); });
+syncHeroPick();
+const meTag = document.createElement('div'); meTag.className = 'label me'; meTag.style.display = 'none'; $('worldLayer').appendChild(meTag);
+function flashScreen(color, a){ const f = $('flash'); f.style.transition = 'none'; f.style.background = color; f.style.opacity = String(reduced ? a * 0.4 : a); void f.offsetWidth; f.style.transition = 'opacity .45s ease-out'; f.style.opacity = '0'; }
+function bigCount(n){ const el = $('bigCount'); el.textContent = String(n); el.classList.toggle('red', n <= 3); el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
 $('playerName').value = store.get('name', '');
 $('playerName').addEventListener('input', () => { $('nameErr').textContent = ''; });
 $('playerName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('playerName').blur(); startGame(); } });
@@ -1179,7 +1358,7 @@ $('restartBtn').addEventListener('click', () => location.reload());
 $('againBtn').addEventListener('click', () => location.reload());
 document.addEventListener('visibilitychange', () => { if (document.hidden && (state.mode === 'play' || state.mode === 'count')) pause(true); });
 function endRun(){
-  state.timeLeft = 0; state.mode = 'over'; decal.visible = false;
+  state.timeLeft = 0; state.mode = 'over'; decal.visible = false; pushState('done');
   banner("Time's up!", `${state.score.toLocaleString()} points`); sfxPlay('win'); playTrack('calm');
   $('touch').classList.add('hidden');
   setTimeout(showResults, 1900);
@@ -1195,13 +1374,11 @@ function showResults(){
 }
 let lastEntry = null;
 async function submitScore(){
-  const entry = { v: 1, type: 'score', id: DEVICE_ID, name: state.name, score: state.score, pops: state.pops, rings: state.rings, boss: state.bossBeaten ? 1 : 0, lvl: P.level };
+  const entry = { v: 1, type: 'score', id: DEVICE_ID, name: state.name, score: state.score, pops: state.pops, rings: state.rings, boss: state.bossBeaten ? 1 : 0, lvl: P.level, hero: heroKey, round: net.round };
   entry.chk = checkCode(entry.id, entry.name, entry.score); lastEntry = entry;
   const el = $('rSubmit'); el.className = 'submit'; el.textContent = 'Sending your score to the big screen…'; $('retryBtn').classList.add('hidden');
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try { const r = await fetch(BOARD_URL, { method: 'POST', body: JSON.stringify(entry) }); if (r.ok) { el.className = 'submit ok'; el.textContent = 'Your score is on the big screen. Look up!'; return; } } catch {}
-    await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
-  }
+  const liveOk = net.up; relay.publish('ev', { ...entry });          // instant, over the live link
+  if (await ntfyPost(BOARD_TOPIC, entry) || liveOk) { el.className = 'submit ok'; el.textContent = 'Your score is on the big screen. Look up!'; return; }
   el.className = 'submit bad'; el.innerHTML = `Couldn’t reach the leaderboard. Show this to the host: <b>${esc(entry.name)} · ${entry.score} · code ${checkCode('hand', entry.name.toLowerCase(), entry.score)}</b>`;
   $('retryBtn').classList.remove('hidden');
 }
@@ -1233,20 +1410,27 @@ function frame(now){
   fpsAcc += dt; fpsN++;
   if (fpsAcc > 2) { const fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; if (DEBUG) { $('fps').classList.remove('hidden'); $('fps').textContent = fps.toFixed(0) + ' fps · ' + quality; }
     if (state.mode === 'play' && fps < 32 && quality !== 'low') { fpsLowT++; if (fpsLowT >= 2) { applyQuality(quality === 'high' ? 'medium' : 'low'); toast('Graphics set to Fast for smoother play'); fpsLowT = 0; } } else fpsLowT = 0; }
-  const simDt = state.hitstop > 0 ? 0 : dt; if (state.hitstop > 0) state.hitstop -= dt;
+  let simDt = state.hitstop > 0 ? 0 : dt; if (state.hitstop > 0) state.hitstop -= dt;
+  if (state.slowT > 0) { state.slowT -= dt; simDt *= 0.3; }
   clock += dt; swayTime.value = clock; seaUniforms.uTime.value = clock; beaconMat.uniforms.uTime.value = clock;
   updateClouds(dt); updateSky(dt);
   if (boat) { boat.position.y = 0.1 + Math.sin(clock * 1.2) * 0.2; boat.rotation.z = Math.sin(clock * 0.9) * 0.06; }
   flags.forEach((f, i) => { f.rotation.y = Math.sin(clock * 3 + i) * 0.3; });
   if (Math.random() < 0.9) debris.emit(fountainTip.x + rand(-0.2, 0.2), fountainTip.y, fountainTip.z + rand(-0.2, 0.2), rand(-0.4, 0.4), rand(-0.5, 0.5), rand(-0.4, 0.4), 1.0, 0.35, COL.milk, 9);
   if (state.mode === 'count') {
-    state.countT -= dt; const n = Math.ceil(state.countT);
+    state.countT = state.goAt ? (state.goAt - performance.now()) / 1000 : state.countT - dt; const n = Math.ceil(state.countT);   // wall clock, so slow phones stay in sync
     if (n !== state.countN && n > 0 && n <= 3) { state.countN = n; banner(String(n), n === 3 ? 'Get ready, Sir Crunch' : ''); sfxPlay('ui'); }
     if (state.countT <= 0) { state.mode = 'play'; banner('Go!', isTouch ? 'Use the arrows. Follow the gold path to the rings.' : 'Follow the gold arrows to the rings'); sfxPlay('level'); state.spawnT = 0.2; }
     updateSites(dt); updatePickups(dt);
+  } else if (state.mode === 'play' && state.cine > 0) {
+    state.cine -= dt; updateBoss(dt * 0.55); updateSites(dt); updatePickups(dt); updatePowers(0);
+    if (state.cine <= 0) { state.cine = 0; $('bossCard').classList.add('hidden'); document.body.classList.remove('cine'); banner('Pop the Great Sog!', '+400 points · grab the Giant Spoon'); spawnPower('spoon', true); }
   } else if (state.mode === 'play') {
-    updatePlayer(simDt, inp); updateSpawner(simDt); updateEnemies(simDt); updateBoss(simDt); updateSites(simDt); updatePickups(simDt);
+    updatePlayer(simDt, inp); updateSpawner(simDt); updateEnemies(simDt); updateBoss(simDt); updateSites(simDt); updatePickups(simDt); updatePowers(simDt);
     state.time += dt; state.timeLeft -= dt;
+    const sec = Math.ceil(state.timeLeft);
+    if (sec <= 10 && sec >= 1 && sec !== state.lastSec) { state.lastSec = sec; bigCount(sec); sfxPlay(sec <= 3 ? 'tock' : 'tick'); }
+    if (performance.now() - net.lastState > 4000) pushState('play');
     if (!state.bossSpawned && state.timeLeft <= BOSS_AT) spawnBoss();
     if (state.timeLeft <= 0) endRun();
   } else if (state.mode === 'dialog') { updateDialog(dt, inp); updateSites(dt); updatePickups(dt); updateBoss(dt); }
@@ -1256,7 +1440,7 @@ function frame(now){
       for (const e of enemies) if (e.alive) { const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz); if (d < 7) { e.kx += dx / (d || 1) * 14; e.kz += dz / (d || 1) * 14; } }
       burst(sparks, P.x, P.y + 1, P.z, 40, COL.gold, 8, 0.6, 0.5, 0); }
     if (state.timeLeft <= 0) endRun();
-  } else { updateSites(dt); updatePickups(dt); if (state.mode === 'victory' || state.mode === 'title') { updateEnemies(dt); } }
+  } else { updateSites(dt); updatePickups(dt); if (state.mode === 'victory' || state.mode === 'title' || state.mode === 'lobby' || state.mode === 'lobbyGo') { updateEnemies(dt); } if (state.mode === 'lobby' && (net.tick += dt) > 0.5) { net.tick = 0; lobbyTick(); } }
   animateHero(simDt); updateNpcs(dt); updateFireworks(dt);
   if (shockT < 0.5) { shockT += dt; const k = shockT / 0.5; shock.scale.setScalar(0.5 + k * shockR); shockMat.opacity = (1 - k) * 0.9; } else shockMat.opacity = 0;
   sparks.update(dt); debris.update(dt);
@@ -1282,9 +1466,9 @@ if (DEBUG) {
     rings(n){ RING_SITES.slice(0, n).forEach(s => { s.enemies.forEach(e => e.alive && killEnemy(e)); s.cleared = true; collectRing(s); }); },
     boss(){ state.timeLeft = BOSS_AT + 0.5; },
     end(){ state.timeLeft = 0.05; },
-    go(){ if (state.mode === 'count') state.countT = 0.01; },
+    go(){ if (state.mode === 'count') { state.countT = 0.01; state.goAt = performance.now() + 10; } },
     hurtBoss(n){ if (B) { B.hp -= n; updateBossBar(); if (B.hp <= 0) bossDefeated(); } },
     snap(){ updateCamera(0.05); camera.position.copy(desired); cam.look.copy(lookT); camera.lookAt(cam.look); },
-    cam: cam, burst: doBurst, setQ: applyQuality, B: () => B
+    cam: cam, burst: doBurst, setQ: applyQuality, B: () => B, net, pw, power: k => applyPower(k), spawnPower, powerUps: () => powerUps, hero: () => heroKey
   };
 }
