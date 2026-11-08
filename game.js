@@ -1163,10 +1163,10 @@ function updateBoss(dt){
     }
     case 'recover': { sy = 0.8 + 0.2 * Math.min(1, B.st / 0.9); sxz = 1.15 - 0.15 * Math.min(1, B.st / 0.9); if (B.st > (B.phase === 2 ? 0.75 : 1.0)) { B.state = 'fight'; B.st = 0; B.slamT = B.phase === 2 ? 2.4 : 3.4; } break; }
     case 'dying': {
-      const k = Math.min(1, B.st / 1.8); sy = 1 + Math.sin(B.st * 30) * 0.15 * (1 - k); sxz = 1 - Math.sin(B.st * 30) * 0.1;
+      const k = Math.min(1, B.st / 0.8); sy = 1 + Math.sin(B.st * 30) * 0.15 * (1 - k); sxz = 1 - Math.sin(B.st * 30) * 0.1;   // quick deflate (was 1.8 s)
       m.g.scale.setScalar(m.s * (1 - k * 0.9));
-      if (Math.random() < 0.8) burst(debris, B.x + rand(-2, 2), B.y + rand(1, 5), B.z + rand(-2, 2), 6, COL.milk, 8, 0.8, 0.6, 12);
-      if (k >= 1) { scene.remove(m.g); scene.remove(B.shadow); B.alive = false; burst(sparks, B.x, B.y + 3, B.z, 140, COL.gold, 16, 1.2, 0.8, 3, 0.4); burst(debris, B.x, B.y + 3, B.z, 160, COL.milk, 14, 1.2, 0.8, 12, 0.4); sfxPlay('boom'); state.shake = 1; sky.duskTarget = 0; if (state.mode === 'play') playTrack('adventure'); }
+      if (Math.random() < 0.6) burst(debris, B.x + rand(-2, 2), B.y + rand(1, 5), B.z + rand(-2, 2), 5, COL.milk, 8, 0.6, 0.6, 12);
+      if (k >= 1) { scene.remove(m.g); scene.remove(B.shadow); B.alive = false; burst(sparks, B.x, B.y + 3, B.z, 100, COL.gold, 16, 0.8, 0.8, 3, 0.4); burst(debris, B.x, B.y + 3, B.z, 110, COL.milk, 14, 0.8, 0.8, 12, 0.4); sfxPlay('boom'); state.shake = 1; sky.duskTarget = 0; if (state.mode === 'play') playTrack('adventure'); }
       break;
     }
   }
@@ -1180,8 +1180,8 @@ function updateBoss(dt){
 function bossDefeated(){
   B.state = 'dying'; B.st = 0; decal.visible = false; $('bossBar').classList.add('hidden');
   enemies.forEach(e => { if (e.alive && e.minion) killEnemy(e); });
-  state.bossBeaten = true; addScore(400, B.x, B.y + 7, B.z, false); state.slowT = 1.1; flashScreen('#FFFFFF', 0.6);
-  for (const c of RAINBOW) burst(sparks, B.x, B.y + 5, B.z, 22, c, 14, 1.3, 0.8, 6, 0.6);
+  state.bossBeaten = true; addScore(400, B.x, B.y + 7, B.z, false); state.slowT = 0.35; flashScreen('#FFFFFF', 0.6);
+  for (const c of RAINBOW) burst(sparks, B.x, B.y + 5, B.z, 18, c, 14, 0.9, 0.8, 6, 0.6);
   liveEvent('boss');
   gainXp(40, B.x, B.y + 6, B.z);
   banner('The Great Sog is popped!', '+400 points'); sfxPlay('roar');
@@ -1502,6 +1502,6 @@ if (DEBUG) {
     go(){ if (state.mode === 'count') { state.countT = 0.01; state.goAt = performance.now() + 10; } },
     hurtBoss(n){ if (B) { B.hp -= n; updateBossBar(); if (B.hp <= 0) bossDefeated(); } },
     snap(){ updateCamera(0.05); camera.position.copy(desired); cam.look.copy(lookT); camera.lookAt(cam.look); },
-    cam: cam, burst: doBurst, setQ: applyQuality, B: () => B, net, pw, power: k => applyPower(k), spawnPower, powerUps: () => powerUps, hero: () => heroKey
+    cam: cam, burst: doBurst, setQ: applyQuality, B: () => B, popBoss(){ if (B && B.alive && B.state !== 'dying') bossDefeated(); }, net, pw, power: k => applyPower(k), spawnPower, powerUps: () => powerUps, hero: () => heroKey
   };
 }
