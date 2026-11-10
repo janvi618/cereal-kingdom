@@ -43,7 +43,7 @@ Scores travel through **ntfy.sh**, a free public message relay, on a topic only 
 
 ## Files
 
-`index.html`, `game.js`, `terrain.js`, `audio.js` (the game), `board.html` (the leaderboard), `qr-code.png`, and `vendor/three.module.min.js` (Three.js r169, MIT License). Adding `?debug` to the game address shows a frame counter and a `K` object in the browser console for testing.
+`index.html`, `game.js`, `terrain.js`, `audio.js` (the game), `board.html` (the leaderboard), `qr-code.png`, and `vendor/three.module.min.js` (Three.js r169, MIT License). Adding `?debug` to the game address shows a frame counter and a `K` object in the browser console for testing. Graphics are picked automatically (Best on laptops, Balanced on phones, and a lighter level if a phone can't keep up); add `?q=low`, `?q=medium` or `?q=high` to force one for testing.
 
 ## Credits
 

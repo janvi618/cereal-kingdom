@@ -13,7 +13,9 @@ const store = {
   get(k, d){ try { const v = localStorage.getItem('ck:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v){ try { localStorage.setItem('ck:' + k, JSON.stringify(v)); } catch {} }
 };
-let quality = params.get('q') || store.get('quality', isTouch ? 'medium' : 'high');
+// Graphics are chosen for the player: Best on laptops, Balanced on phones. A phone that can't keep up
+// drops a level on its own and remembers it ("autoQ"), so Play again starts smooth. ?q=low|medium|high forces a level for testing.
+let quality = params.get('q') || store.get('autoQ', isTouch ? 'medium' : 'high');
 setSound(store.get('sound', true));
 const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
 const RUN_SECONDS = 60, BOSS_AT = 30;   // one-minute game: the Great Sog arrives at the halfway mark
@@ -52,7 +54,7 @@ sunLight.shadow.bias = -0.0005; sunLight.shadow.normalBias = 0.04;
 
 let fogFar = 320;
 function applyQuality(q, first){
-  quality = q; store.set('quality', q);
+  quality = q;
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, q === 'high' ? 2 : q === 'medium' ? 1.5 : 1));
   const sh = q === 'high';
   if (first || renderer.shadowMap.enabled !== sh) {
@@ -60,7 +62,6 @@ function applyQuality(q, first){
     if (!first) scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.needsUpdate = true; }); });
   }
   fogFar = q === 'low' ? 230 : 320;
-  for (const id of ['segQ', 'segQ2']) $(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === q)));
 }
 
 /* ================= helpers ================= */
@@ -1329,7 +1330,6 @@ function updateSky(dt){
 function setSeg(id, v){ $(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); }
 function syncSettings(){ setSeg('segSound', soundOn() ? 'on' : 'off'); setSeg('segSound2', soundOn() ? 'on' : 'off'); }
 for (const id of ['segSound', 'segSound2']) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setSound(b.dataset.v === 'on'); store.set('sound', b.dataset.v === 'on'); syncSettings(); });
-for (const id of ['segQ', 'segQ2']) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; applyQuality(b.dataset.v); });
 $('howto').innerHTML = isTouch
   ? '<div><b>Move</b>Arrow buttons, bottom left</div><div><b>Attack</b>Automatic: just get close</div><div><b>Rings</b>Follow the gold arrows: +150 each</div><div><b>Burst</b>Tap when it glows</div>'
   : '<div><b>Move</b>WASD or arrow keys</div><div><b>Attack</b>Automatic when close (or J)</div><div><b>Dash</b>K or Shift</div><div><b>Burst</b>L when the meter glows</div>';
@@ -1437,7 +1437,7 @@ $('playerName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.pr
 $('playBtn').addEventListener('click', startGame);
 function pause(on){
   if (on && state.mode !== 'play' && state.mode !== 'count') return;
-  if (on) { state.prevMode = state.mode; state.mode = 'paused'; $('pause').classList.remove('hidden'); suspendAudio(true); syncSettings(); applyQuality(quality); }
+  if (on) { state.prevMode = state.mode; state.mode = 'paused'; $('pause').classList.remove('hidden'); suspendAudio(true); syncSettings(); }
   else if (state.mode === 'paused') { state.mode = state.prevMode || 'play'; $('pause').classList.add('hidden'); suspendAudio(false); }
 }
 $('pauseBtn').addEventListener('click', () => pause(true));
@@ -1500,7 +1500,7 @@ function frame(now){
   // frame-rate watchdog (only steps down)
   fpsAcc += dt; fpsN++;
   if (fpsAcc > 2) { const fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; if (DEBUG) { $('fps').classList.remove('hidden'); $('fps').textContent = fps.toFixed(0) + ' fps · ' + quality; }
-    if (state.mode === 'play' && fps < 32 && quality !== 'low') { fpsLowT++; if (fpsLowT >= 2) { applyQuality(quality === 'high' ? 'medium' : 'low'); toast('Graphics set to Fast for smoother play'); fpsLowT = 0; } } else fpsLowT = 0; }
+    if (state.mode === 'play' && fps < 32 && quality !== 'low') { fpsLowT++; if (fpsLowT >= 2) { applyQuality(quality === 'high' ? 'medium' : 'low'); store.set('autoQ', quality); toast('Lighter graphics for a smoother game'); fpsLowT = 0; } } else fpsLowT = 0; }
   let simDt = state.hitstop > 0 ? 0 : dt; if (state.hitstop > 0) state.hitstop -= dt;
   if (state.slowT > 0) { state.slowT -= dt; simDt *= 0.3; }
   clock += dt; swayTime.value = clock; seaUniforms.uTime.value = clock; beaconMat.uniforms.uTime.value = clock;
@@ -1563,6 +1563,6 @@ if (DEBUG) {
     go(){ if (state.mode === 'count') { state.countT = 0.01; state.goAt = performance.now() + 10; } },
     hurtBoss(n){ if (B) { B.hp -= n; updateBossBar(); if (B.hp <= 0) bossDefeated(); } },
     snap(){ updateCamera(0.05); camera.position.copy(desired); cam.look.copy(lookT); camera.lookAt(cam.look); },
-    cam: cam, burst: doBurst, setQ: applyQuality, B: () => B, popBoss(){ if (B && B.alive && B.state !== 'dying') bossDefeated(); }, net, pw, power: k => applyPower(k), spawnPower, powerUps: () => powerUps, hero: () => heroKey
+    cam: cam, burst: doBurst, setQ: applyQuality, q: () => quality, B: () => B, popBoss(){ if (B && B.alive && B.state !== 'dying') bossDefeated(); }, net, pw, power: k => applyPower(k), spawnPower, powerUps: () => powerUps, hero: () => heroKey
   };
 }
