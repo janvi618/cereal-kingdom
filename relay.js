@@ -1,11 +1,13 @@
 // Cereal Kingdom live relay.
 // Live, room-wide messages (lobby, start signal, live scores, ticker events) go over MQTT on secure
-// WebSockets to two free public brokers at once, deduplicated, so either one can drop out.
+// WebSockets to three free public brokers at once, deduplicated, so any of them can drop out.
+// Company and venue networks often allow only the standard web port (443), which blocks the first
+// two brokers' ports (8084, 8884); the Eclipse broker listens on 443, so the live link still works there.
 // ntfy.sh stays the durable store for final scores and a fallback start channel for networks
-// that block the brokers' ports.
+// that block all three.
 
 const te = new TextEncoder(), td = new TextDecoder();
-export const DEFAULT_BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
+export const DEFAULT_BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://mqtt.eclipseprojects.io/mqtt'];
 export const NTFY = 'https://ntfy.sh/';
 
 const str = s => { const b = te.encode(s); return [b.length >> 8, b.length & 255, ...b]; };
