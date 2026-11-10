@@ -62,7 +62,7 @@ To change the recap's last line, edit `REVEAL` near the top of the script in `bo
 
 Phones that open the game when no big screen is waiting start on their own after a few seconds, and anyone can tap **Start on my own** in the lobby.
 
-**Network note.** The live features (lobby, shared start, live scores, feed) travel over two free public MQTT brokers on secure WebSockets (`broker.emqx.io:8084` and `broker.hivemq.com:8884`), so either can drop out. Final scores are also saved to ntfy.sh. If a network blocks the brokers' ports, phones fall back to ntfy for the start signal and scores, and the big screen shows "Live (scores only)". Test on the venue Wi-Fi beforehand.
+**Network note.** The live features (lobby, shared start, live scores, feed) travel over three free public MQTT brokers on secure WebSockets at the same time: `broker.emqx.io:8084`, `broker.hivemq.com:8884` and `mqtt.eclipseprojects.io:443`. Any of them can drop out. Company and venue networks often block every port except 443, so the Eclipse broker is the one that usually gets through there. Final scores are also saved to ntfy.sh. If a network blocks all three, phones fall back to ntfy for the start signal and scores, and the big screen shows "Live (scores only)": the game still works, but the leaderboard only updates when each run ends. Before the talk, open the big screen on the venue Wi-Fi and check that it says "Live".
 
 ## What's new in the game
 
