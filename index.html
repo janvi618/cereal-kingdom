@@ -139,11 +139,23 @@ body.cine #touch, body.cine #powerChips{opacity:.25}
 @keyframes bcSlam{from{opacity:0;transform:scale(2.6);letter-spacing:.3em}to{opacity:1;transform:scale(1);letter-spacing:0}}
 #bigCount{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);font-family:var(--display);font-weight:600;font-size:clamp(90px,24vw,200px);color:#fff;opacity:0;pointer-events:none;z-index:2;text-shadow:0 6px 0 rgba(20,33,92,.6)}
 #bigCount.red{color:#FF7A5A}
+/* Golden Rush: the last 10 seconds glow gold, with a ×2 badge on the score */
+#rushGlow{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .5s;background:radial-gradient(ellipse at center, rgba(255,212,71,0) 52%, rgba(255,196,40,.42) 82%, rgba(255,170,20,.7) 100%);box-shadow:inset 0 0 0 5px rgba(255,212,71,.9)}
+body.rush #rushGlow{opacity:1;animation:rushPulse 1s ease-in-out infinite alternate}
+@keyframes rushPulse{from{opacity:.6}to{opacity:1}}
+.dbl{position:absolute;left:-12px;top:-10px;background:var(--sun);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:1px 8px;font-size:13px;font-weight:700;transform:scale(0);transition:transform .2s cubic-bezier(.2,1.6,.4,1)}
+body.rush .dbl{transform:scale(1) rotate(-8deg)}
+body.rush .scorebox{border-color:var(--sun);box-shadow:0 0 16px 3px rgba(255,212,71,.75)}
+body.rush .scorebox b{color:var(--sun)}
+body.rush #bigCount{color:var(--sun)}
+body.rush #banner .big{color:#fff;text-shadow:0 4px 0 #C9361A,0 0 24px rgba(20,33,92,.6)}
+body.rush #bigCount.red{color:#FF7A5A}
+.stats-grid b small{font-family:var(--body);font-size:13px;font-weight:700;color:#B07A00;white-space:nowrap}
 #bigCount.go{animation:count .9s ease-out both}
 @keyframes count{0%{opacity:.95;transform:translate(-50%,-50%) scale(1.5)}60%{opacity:.6}100%{opacity:0;transform:translate(-50%,-50%) scale(.9)}}
 .ftext.pts.mid{font-size:30px}
 .ftext.pts.big{font-size:44px;color:#FFF3A8}
-@media (prefers-reduced-motion: reduce){ #bossCard.go *{animation-duration:.01s !important} #bigCount.go{animation-duration:.4s} .waiting i{animation:none} }
+@media (prefers-reduced-motion: reduce){ body.rush #rushGlow{animation:none;opacity:.8} #bossCard.go *{animation-duration:.01s !important} #bigCount.go{animation-duration:.4s} .waiting i{animation:none} }
 /* stacking: thumb area under the HUD (so Pause stays tappable), screens and dialogs on top */
 #touch{z-index:1} #hud{z-index:2} #bossBar{z-index:2} #dialog,#banner,#toast{z-index:3} .screen{z-index:4}
 .btns{position:absolute;right:calc(14px + var(--sr));bottom:calc(18px + var(--sb));width:100px;height:190px;pointer-events:none}
@@ -236,7 +248,7 @@ body.cine #touch, body.cine #powerChips{opacity:.25}
     </div>
   </div>
   <div class="center">
-    <div class="scorebox"><span class="lbl">Score</span><b id="scoreNum">0</b><span class="combo" id="comboChip"></span></div>
+    <div class="scorebox"><span class="lbl">Score</span><b id="scoreNum">0</b><span class="combo" id="comboChip"></span><span class="dbl" aria-hidden="true">×2</span></div>
     <div class="objective" id="objective">
       <div id="compass"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#FFD447" stroke="#14215C" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
       <div><div id="objText">Pop every soggy you can!</div><div id="objDist"></div></div>
@@ -263,6 +275,7 @@ body.cine #touch, body.cine #powerChips{opacity:.25}
 
 <div id="dialog" class="hidden" role="dialog" aria-live="polite"><div class="who" id="dWho"></div><div class="what" id="dWhat"></div><div class="next" id="dNext">Tap to continue</div></div>
 <div id="vignette" aria-hidden="true"></div>
+<div id="rushGlow" aria-hidden="true"></div>
 <div id="flash" aria-hidden="true"></div>
 <div id="bossCard" class="hidden" aria-live="assertive"><div class="bc1">Here comes</div><div class="bc2">The Great Sog</div><div class="bc3">Pop him for +400</div></div>
 <div id="bigCount" aria-hidden="true"></div>

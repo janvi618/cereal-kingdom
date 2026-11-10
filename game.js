@@ -589,6 +589,55 @@ function updateQuickRings(dt){
   }
 }
 
+/* ================= Golden Rush: the last 10 seconds ================= */
+// Each phone starts it from its own game clock, so the whole room gets it at the same moment
+// even when the Wi-Fi is slow. Everything scores double, and small golden rings rain down around you.
+const RUSH_AT = 10, RAIN_PTS = 25;     // a rain ring is +50 during the rush
+const rain = []; let rainT = 0;
+const rainGeo = new THREE.TorusGeometry(0.62, 0.19, 12, 28);
+function startRush(){
+  if (state.rush) return;
+  state.rush = true; rainT = 0.5;
+  document.body.classList.add('rush');
+  banner('Golden Rush!', 'Double points. Grab the falling rings!');
+  flashScreen('#FFD447', 0.55); sfxPlay('rush'); state.shake = Math.max(state.shake, 0.35);
+  if (navigator.vibrate) try { navigator.vibrate([60, 40, 60]); } catch {}
+  for (let i = 0; i < 5; i++) spawnRainRing(i);   // an opening shower
+}
+function spawnRainRing(stagger = 0){
+  if (rain.length >= 12) return;
+  const p = landPointNear(P.x + camFwd.x * 3, P.z + camFwd.z * 3, 1.5, 8); if (!p) return;
+  const gy = height(p.x, p.z), g = new THREE.Group(); g.position.set(p.x, gy + 13 + stagger * 3 + rand(0, 3), p.z); scene.add(g);
+  const ring = mk(rainGeo, ringMat, false); g.add(ring);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#FFD447', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 })); glow.scale.set(3.2, 3.2, 1); g.add(glow);
+  rain.push({ x: p.x, z: p.z, gy, g, ring, glow, vy: -rand(13, 17), landed: false, t: 0, life: 4.5, spin: rand(3, 6) });
+}
+function dropRainRing(i){ const r = rain[i]; scene.remove(r.g); r.glow.material.dispose(); rain.splice(i, 1); }
+function grabRainRing(i){
+  const r = rain[i], y = r.g.position.y; dropRainRing(i); state.gold++; sfxPlay('gold');
+  burst(sparks, r.x, y, r.z, 30, COL.gold, 7, 0.6, 0.45, 2, 0.3);
+  addScore(RAIN_PTS, r.x, y + 1.2, r.z, false);
+}
+function updateRain(dt){
+  if (state.rush && (state.mode === 'play' || state.mode === 'down')) { rainT -= dt; if (rainT <= 0) { rainT = rand(0.3, 0.45); spawnRainRing(); } }
+  for (let i = rain.length - 1; i >= 0; i--) {
+    const r = rain[i], g = r.g; r.t += dt;
+    r.ring.rotation.y += dt * r.spin; r.ring.rotation.x = 0.35 * Math.sin(r.t * 3);
+    if (!r.landed) {
+      g.position.y += r.vy * dt;
+      if (Math.random() < dt * 25) sparks.emit(r.x + rand(-0.3, 0.3), g.position.y + 0.6, r.z + rand(-0.3, 0.3), 0, rand(0.5, 1.5), 0, 0.5, 0.3, COL.gold, 0);
+      if (g.position.y <= r.gy + 1.3) { g.position.y = r.gy + 1.3; r.landed = true; r.t = 0; burst(sparks, r.x, r.gy + 0.4, r.z, 14, COL.gold, 4, 0.4, 0.35, 8); }
+    } else {
+      if (pw.magnet > 0) { const dx = P.x - r.x, dz = P.z - r.z, d = Math.hypot(dx, dz); if (d < 12 && d > 0.01) { const s = Math.min(d, dt * 14); r.x += dx / d * s; r.z += dz / d * s; g.position.x = r.x; g.position.z = r.z; } }
+      g.position.y = r.gy + 1.3 + Math.sin(r.t * 4) * 0.15;
+      if (r.t > r.life - 0.6) g.scale.setScalar(Math.max(0.01, (r.life - r.t) / 0.6));
+    }
+    if (state.mode === 'play' && P.alive && Math.hypot(r.x - P.x, r.z - P.z) < 2.3 && g.position.y < P.y + 5) { grabRainRing(i); continue; }
+    if (r.landed && r.t > r.life) dropRainRing(i);
+  }
+}
+function clearRain(){ for (let i = rain.length - 1; i >= 0; i--) { const r = rain[i]; burst(sparks, r.x, r.g.position.y, r.z, 12, COL.gold, 4, 0.4, 0.35, 4); dropRainRing(i); } }
+
 /* ================= power-ups ================= */
 // Run over them: no new buttons. One appears every ~15 s, and a Giant Spoon arrives with the Great Sog.
 const POWERS = {
@@ -751,12 +800,13 @@ function updateBossBar(){ if (B) $('bossFill').style.transform = `scaleX(${Math.
 
 /* ================= state, HUD, UI ================= */
 const state = { mode: 'title', stage: 'rings', rings: 0, coins: 0, kills: 0, time: 0, timerOn: false, shake: 0, hitstop: 0, downT: 0, winT: -1,
-  score: 0, timeLeft: RUN_SECONDS, chain: 0, chainT: 0, mult: 1, bestMult: 1, pops: 0, bossSpawned: false, bossBeaten: false, spawnT: 2, countT: 0, countN: 0, name: '' };
+  score: 0, timeLeft: RUN_SECONDS, chain: 0, chainT: 0, mult: 1, bestMult: 1, pops: 0, bossSpawned: false, bossBeaten: false, spawnT: 2, countT: 0, countN: 0, name: '', rush: false, gold: 0 };
 const hud = { hp: '', xp: '', lv: '', score: '', combo: '', rings: '', timer: '', obj: '', dist: '' };
 function fmtTime(s){ s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function setText(key, id, v){ if (hud[key] !== v) { hud[key] = v; $(id).textContent = v; } }
 function objective(){
-  if (B && B.alive && B.state !== 'dying') return { text: 'The Great Sog! Pop him for +400', x: B.x, z: B.z, beacon: false, boss: true };
+  if (B && B.alive && B.state !== 'dying') return { text: state.rush ? 'Golden Rush! The Great Sog is worth +800' : 'The Great Sog! Pop him for +400', x: B.x, z: B.z, beacon: false, boss: true };
+  if (state.rush) return { text: 'Golden Rush! Double points. Grab the falling rings', x: null };
   const qr = quickRings[0];
   if (qr) return { text: 'Follow the arrows: Golden Ring +150', x: qr.x, z: qr.z, beacon: true };
   return { text: state.bossSpawned ? 'Pop every soggy you can!' : 'Pop soggies! A Golden Ring is on its way', x: null };
@@ -909,6 +959,7 @@ function talkTo(n){
 function addScore(base, x, y, z, combo){
   let pts = base;
   if (combo) { state.chain++; state.chainT = 3.5; state.mult = state.chain >= 12 ? 4 : state.chain >= 7 ? 3 : state.chain >= 3 ? 2 : 1; state.bestMult = Math.max(state.bestMult, state.mult); pts *= state.mult; }
+  if (state.rush) pts *= 2;            // Golden Rush: everything is worth double in the last 10 seconds
   state.score += pts; floatText(x, y, z, `+${pts}`, pts >= 150 ? 'pts big' : pts >= 40 ? 'pts mid' : 'pts');
 }
 function landPointNear(x, z, rMin, rMax){
@@ -1284,7 +1335,7 @@ $('howto').innerHTML = isTouch
   : '<div><b>Move</b>WASD or arrow keys</div><div><b>Attack</b>Automatic when close (or J)</div><div><b>Dash</b>K or Shift</div><div><b>Burst</b>L when the meter glows</div>';
 /* ================= room link: the big screen starts everyone together ================= */
 const CTL_TOPIC = BOARD_TOPIC + '-ctl';
-const net = { up: false, ctl: null, round: null, lobbyAt: 0, fallback: null, startTimer: 0, lastState: 0, tick: 0 };
+const net = { up: false, ctl: null, round: null, game: null, lobbyAt: 0, fallback: null, startTimer: 0, lastState: 0, tick: 0 };
 const relay = createRelay({
   room: BOARD_TOPIC,
   brokers: params.get('brokers') ? params.get('brokers').split(',') : undefined,
@@ -1300,7 +1351,7 @@ function onCtl(d){
 const ctlFresh = c => c && Date.now() - (c.seen || c.t || 0) < 120000;
 const hostWaiting = () => net.ctl && net.ctl.state === 'lobby' && ctlFresh(net.ctl);
 function liveStartAt(){ const c = net.ctl; return c && c.state === 'start' && Date.now() - c.at < 150000 ? c.at : null; }
-function myState(status){ return { type: 'state', status, id: DEVICE_ID, name: state.name, hero: heroKey, round: net.round, score: state.score, pops: state.pops, rings: state.rings, boss: state.bossBeaten ? 1 : 0 }; }
+function myState(status){ return { type: 'state', status, id: DEVICE_ID, name: state.name, hero: heroKey, round: net.round, score: state.score, pops: state.pops, rings: state.rings, gold: state.gold, boss: state.bossBeaten ? 1 : 0, game: net.game }; }
 function pushState(status){ relay.publish('p/' + DEVICE_ID, myState(status), true); net.lastState = performance.now(); }
 function liveEvent(type, extra){ relay.publish('ev', { type, id: DEVICE_ID, name: state.name, hero: heroKey, round: net.round, ...extra }); }
 function heroIcon(k){ const h = HEROES[k] || HEROES.frosted; return `<span class="kn" style="--c:${h.tunic};--k:${h.cape};--p:${h.plume}"><i class="b"></i><i class="f"></i><i class="h"></i><i class="p"></i></span>`; }
@@ -1324,7 +1375,7 @@ function enterLobby(){
 function lobbyTick(){
   if (state.mode !== 'lobby') return;
   const at = liveStartAt();
-  if (at) { joinStart(at); return; }
+  if (at) { net.game = net.ctl.game || null; joinStart(at); return; }   // the big screen's room recap counts this game
   if (hostWaiting()) {
     const n = Math.max(1, net.ctl.ready || 1);
     $('lobbyCount').textContent = n; $('lobbyCountWord').textContent = n === 1 ? 'player ready' : 'players ready';
@@ -1396,13 +1447,14 @@ $('againBtn').addEventListener('click', () => location.reload());
 document.addEventListener('visibilitychange', () => { if (document.hidden && (state.mode === 'play' || state.mode === 'count')) pause(true); });
 function endRun(){
   state.timeLeft = 0; state.mode = 'over'; decal.visible = false; pushState('done');
+  clearRain(); state.rush = false; document.body.classList.remove('rush');
   banner("Time's up!", `${state.score.toLocaleString()} points`); sfxPlay('win'); playTrack('calm');
   $('touch').classList.add('hidden');
   setTimeout(showResults, 1900);
 }
 function showResults(){
   $('rScore').textContent = state.score.toLocaleString(); $('rName').textContent = state.name;
-  $('rPops').textContent = state.pops; $('rRings').textContent = `${state.rings} / 3`;
+  $('rPops').textContent = state.pops; $('rRings').innerHTML = `${state.rings} / 3` + (state.gold ? ` <small>+${state.gold} in the rush</small>` : '');
   $('rBoss').textContent = state.bossBeaten ? 'Popped!' : (state.bossSpawned ? 'Escaped' : '-'); $('rCombo').textContent = `×${state.bestMult}`;
   const prev = store.get('bestScore', 0); if (state.score > prev) store.set('bestScore', state.score);
   $('rBest').textContent = state.score > prev && prev ? 'A new personal best on this phone!' : prev ? `Your best on this phone: ${prev.toLocaleString()}` : '';
@@ -1411,7 +1463,7 @@ function showResults(){
 }
 let lastEntry = null;
 async function submitScore(){
-  const entry = { v: 1, type: 'score', id: DEVICE_ID, name: state.name, score: state.score, pops: state.pops, rings: state.rings, boss: state.bossBeaten ? 1 : 0, lvl: P.level, hero: heroKey, round: net.round };
+  const entry = { v: 1, type: 'score', id: DEVICE_ID, name: state.name, score: state.score, pops: state.pops, rings: state.rings, gold: state.gold, boss: state.bossBeaten ? 1 : 0, lvl: P.level, hero: heroKey, round: net.round, game: net.game };
   entry.chk = checkCode(entry.id, entry.name, entry.score); lastEntry = entry;
   const el = $('rSubmit'); el.className = 'submit'; el.textContent = 'Sending your score to the big screen…'; $('retryBtn').classList.add('hidden');
   const liveOk = net.up; relay.publish('ev', { ...entry });          // instant, over the live link
@@ -1465,8 +1517,9 @@ function frame(now){
     state.cine -= dt; updateBoss(dt * 0.55); updateSites(dt); updatePickups(dt); updatePowers(0); updateQuickRings(dt);
     if (state.cine <= 0) { state.cine = 0; $('bossCard').classList.add('hidden'); document.body.classList.remove('cine'); banner('Pop the Great Sog!', '+400 points · grab the Giant Spoon'); spawnPower('spoon', true); }
   } else if (state.mode === 'play') {
-    updatePlayer(simDt, inp); updateSpawner(simDt); updateEnemies(simDt); updateBoss(simDt); updateSites(simDt); updatePickups(simDt); updatePowers(simDt); updateQuickRings(simDt);
+    updatePlayer(simDt, inp); updateSpawner(simDt); updateEnemies(simDt); updateBoss(simDt); updateSites(simDt); updatePickups(simDt); updatePowers(simDt); updateQuickRings(simDt); updateRain(simDt);
     state.time += dt; state.timeLeft -= dt;
+    if (!state.rush && state.timeLeft <= RUSH_AT) startRush();
     const sec = Math.ceil(state.timeLeft);
     if (sec <= 10 && sec >= 1 && sec !== state.lastSec) { state.lastSec = sec; bigCount(sec); sfxPlay(sec <= 3 ? 'tock' : 'tick'); }
     if (performance.now() - net.lastState > 4000) pushState('play');
@@ -1474,7 +1527,8 @@ function frame(now){
     if (state.timeLeft <= 0) endRun();
   } else if (state.mode === 'dialog') { updateDialog(dt, inp); updateSites(dt); updatePickups(dt); updateBoss(dt); }
   else if (state.mode === 'down') {
-    state.downT -= dt; updateEnemies(dt); updateBoss(dt); state.timeLeft -= dt;
+    state.downT -= dt; updateEnemies(dt); updateBoss(dt); updateRain(dt); state.timeLeft -= dt;
+    if (!state.rush && state.timeLeft <= RUSH_AT) startRush();
     if (state.downT <= 0) { P.alive = true; P.hp = P.maxHp; P.vx = P.vz = P.kx = P.kz = 0; P.inv = 2; state.mode = 'play';
       for (const e of enemies) if (e.alive) { const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz); if (d < 7) { e.kx += dx / (d || 1) * 14; e.kz += dz / (d || 1) * 14; } }
       burst(sparks, P.x, P.y + 1, P.z, 40, COL.gold, 8, 0.6, 0.5, 0); }
@@ -1505,6 +1559,7 @@ if (DEBUG) {
     rings(n){ for (let i = 0; i < n; i++) { const r = quickRings.pop() || spawnQuickRing(); if (r) { const j = quickRings.indexOf(r); if (j >= 0) quickRings.splice(j, 1); grabQuickRing(r); } } }, quickRings: () => quickRings,
     boss(){ state.timeLeft = BOSS_AT + 0.5; },
     end(){ state.timeLeft = 0.05; },
+    rush(){ state.timeLeft = RUSH_AT + 0.3; }, rain: () => rain, grabRain(){ if (rain.length) grabRainRing(0); }, clock: () => clock,
     go(){ if (state.mode === 'count') { state.countT = 0.01; state.goAt = performance.now() + 10; } },
     hurtBoss(n){ if (B) { B.hp -= n; updateBossBar(); if (B.hp <= 0) bossDefeated(); } },
     snap(){ updateCamera(0.05); camera.position.copy(desired); cam.look.copy(lookT); camera.lookAt(cam.look); },

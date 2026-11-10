@@ -118,5 +118,7 @@ export function sfxPlay(name){
     case 'roar': tone('sawtooth', 110, t, 1.1, 0.18, sfx, 55); tone('sawtooth', 82, t + 0.05, 1.1, 0.14, sfx, 40); hiss(t, 1.0, 0.12, sfx, 'lowpass', 600); break;
     case 'win': [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => tone('square', N(m), t + i * 0.12, 0.3, 0.09)); tone('triangle', N(48), t, 1.4, 0.18); break;
     case 'boom': tone('sine', 140, t, 0.6, 0.45, sfx, 35); hiss(t, 0.6, 0.3, sfx, 'lowpass', 1200, 200); break;
+    case 'rush': [67, 71, 74, 79, 83, 86, 91, 95].forEach((m, i) => tone('square', N(m), t + i * 0.05, 0.22, 0.07)); tone('triangle', N(55), t, 1.2, 0.18); tone('sine', 160, t, 0.7, 0.3, sfx, 640); hiss(t, 1.0, 0.1, sfx, 'highpass', 5000); break;
+    case 'gold': tone('square', N(91 + Math.floor(Math.random() * 3) * 2), t, 0.06, 0.06); tone('triangle', N(98), t + 0.05, 0.16, 0.09); break;
   }
 }
