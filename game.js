@@ -39,7 +39,7 @@ camera.position.set(0, 60, 120);
 
 const DAY = { top: new THREE.Color('#3F82FF'), hor: new THREE.Color('#CFE6FF'), sun: new THREE.Color('#FFF1D2'), light: new THREE.Color('#FFF1D6'), hemi: new THREE.Color('#D3E5FF') };
 const DUSK = { top: new THREE.Color('#3E35A8'), hor: new THREE.Color('#FF9C6C'), sun: new THREE.Color('#FFB27A'), light: new THREE.Color('#FFB487'), hemi: new THREE.Color('#B9A8FF') };
-const sky = { top: DAY.top.clone(), hor: DAY.hor.clone(), sun: DAY.sun.clone(), light: DAY.light.clone(), hemi: DAY.hemi.clone(), dusk: 0, duskTarget: 0 };
+const sky = { top: DAY.top.clone(), hor: DAY.hor.clone(), sun: DAY.sun.clone(), light: DAY.light.clone(), hemi: DAY.hemi.clone(), dusk: 0, duskTarget: 0, fade: 5 };
 scene.fog = new THREE.Fog(sky.hor.clone(), 90, 320);
 const hemi = new THREE.HemisphereLight(sky.hemi, '#E5BE78', 1.25); scene.add(hemi);
 const sunLight = new THREE.DirectionalLight(sky.light, 2.3);
@@ -700,23 +700,25 @@ function guideRoute(o){
   return pts;
 }
 function updateGuide(o){
-  const on = o && o.x != null && (state.mode === 'play' || state.mode === 'count') && Math.hypot(o.x - P.x, o.z - P.z) > 6;
+  // Golden Rings appear 3-18 m away, so the trail has to work at short range: it starts just in front of
+  // Sir Crunch, stops just short of the ring, and loops over that distance only, so the path is always full.
+  const on = o && o.x != null && (state.mode === 'play' || state.mode === 'count') && Math.hypot(o.x - P.x, o.z - P.z) > 4;
   if (!on) { for (const m of guide) m.visible = false; return; }
   const pts = guideRoute(o), seg = [];
   let total = 0;
   for (let i = 0; i < pts.length - 1; i++) { const L = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); seg.push(L); total += L; }
-  const stop = total - (o.site ? 3.4 : (B ? B.r + 2 : 3)), span = GUIDE_N * GUIDE_SP;
+  const start = 1.8, stop = total - (o.site ? 3.4 : o.boss && B ? B.r + 2 : 1.6);
+  const n = clamp(Math.ceil((stop - start) / GUIDE_SP), 1, GUIDE_N), span = n * GUIDE_SP;
   for (let k = 0; k < GUIDE_N; k++) {
-    const m = guide[k], s = 2.0 + ((k * GUIDE_SP + clock * 3.4) % span);
-    if (s > stop) { m.visible = false; continue; }
+    const m = guide[k], s = start + ((k * GUIDE_SP + clock * 3.4) % span);
+    if (k >= n || s > stop) { m.visible = false; continue; }
     let i = 0, acc = 0; while (i < seg.length - 1 && acc + seg[i] < s) { acc += seg[i]; i++; }
     const t = seg[i] ? (s - acc) / seg[i] : 0, [ax, az] = pts[i], [bx, bz] = pts[i + 1];
     const dx = (bx - ax) / (seg[i] || 1), dz = (bz - az) / (seg[i] || 1), x = ax + (bx - ax) * t, z = az + (bz - az) * t;
     const hF = height(x + dx * 0.7, z + dz * 0.7), hB = height(x - dx * 0.7, z - dz * 0.7), hC = height(x, z);
     m.position.set(x, Math.max(hF, hB, hC) + 0.16, z);
     m.rotation.y = Math.atan2(dx, dz); m.rotation.x = -Math.atan2(hF - hB, 1.4);
-    const f = (s - 2.0) / span;
-    m.material.opacity = 0.97 * smoothstep(0, 0.12, f) * (1 - smoothstep(0.72, 1, f)) * smoothstep(0, 2.5, stop - s); m.edge.material.opacity = m.material.opacity * 0.85;
+    m.material.opacity = 0.97 * smoothstep(0, 0.8, s - start) * smoothstep(0, 1.0, stop - s); m.edge.material.opacity = m.material.opacity * 0.85;
     m.visible = true;
   }
 }
@@ -735,7 +737,7 @@ function spawnBoss(){
   if (height(bx, bz) < 0.8) { const p = landPointNear(P.x, P.z, 9, 16); if (p) { bx = p.x; bz = p.z; } else { bx = P.x + 7; bz = P.z; } }
   const m = soggyModel('boss'); scene.add(m.g);
   B = { x: bx, z: bz, y: height(bx, bz) - 7, hp: 20, maxHp: 20, r: 3.1, state: 'emerge', st: 0, slamT: 3.2, sumT: 8, kx: 0, kz: 0, face: Math.atan2(P.x - bx, P.z - bz), flash: 0, phase: 1, m, alive: true, shadow: blob(7), tx: 0, tz: 0, ax: 0, az: 0 };
-  sky.duskTarget = 1; playTrack('boss'); sfxPlay('bass'); setTimeout(() => sfxPlay('roar'), 450); state.shake = 0.9;
+  sky.duskTarget = 1; sky.fade = 5; playTrack('boss'); sfxPlay('bass'); setTimeout(() => sfxPlay('roar'), 450); state.shake = 0.9;
   // cinematic: the clock stops, the camera swings round to watch him rise, and a title card slams in
   state.cine = 2.9; P.inv = Math.max(P.inv, 4.5); P.vx = P.vz = 0;
   { const dx = bx - P.x, dz = bz - P.z, dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
@@ -754,7 +756,7 @@ const hud = { hp: '', xp: '', lv: '', score: '', combo: '', rings: '', timer: ''
 function fmtTime(s){ s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function setText(key, id, v){ if (hud[key] !== v) { hud[key] = v; $(id).textContent = v; } }
 function objective(){
-  if (B && B.alive && B.state !== 'dying') return { text: 'The Great Sog! Pop him for +400', x: B.x, z: B.z, beacon: false };
+  if (B && B.alive && B.state !== 'dying') return { text: 'The Great Sog! Pop him for +400', x: B.x, z: B.z, beacon: false, boss: true };
   const qr = quickRings[0];
   if (qr) return { text: 'Follow the arrows: Golden Ring +150', x: qr.x, z: qr.z, beacon: true };
   return { text: state.bossSpawned ? 'Pop every soggy you can!' : 'Pop soggies! A Golden Ring is on its way', x: null };
@@ -1122,7 +1124,7 @@ function updateEnemies(dt){
   }
 }
 function updateBoss(dt){
-  if (!B) return;
+  if (!B || !B.alive) return;   // once he has burst, stop: otherwise the final explosion, boom and shake replay every frame
   const m = B.m; B.st += dt; B.flash -= dt;
   const dx = P.x - B.x, dz = P.z - B.z, d = Math.hypot(dx, dz);
   const S = SITES.beach;
@@ -1181,6 +1183,7 @@ function bossDefeated(){
   B.state = 'dying'; B.st = 0; decal.visible = false; $('bossBar').classList.add('hidden');
   enemies.forEach(e => { if (e.alive && e.minion) killEnemy(e); });
   state.bossBeaten = true; addScore(400, B.x, B.y + 7, B.z, false); state.slowT = 0.35; flashScreen('#FFFFFF', 0.6);
+  sky.duskTarget = 0; sky.fade = 1.2;   // daylight is back within about a second (was 5 s, after the deflate)
   for (const c of RAINBOW) burst(sparks, B.x, B.y + 5, B.z, 18, c, 14, 0.9, 0.8, 6, 0.6);
   liveEvent('boss');
   gainXp(40, B.x, B.y + 6, B.z);
@@ -1263,7 +1266,7 @@ function updateCamera(dt){
 }
 function updateSky(dt){
   if (sky.dusk !== sky.duskTarget) {
-    sky.dusk += Math.sign(sky.duskTarget - sky.dusk) * dt / 5; sky.dusk = clamp(sky.dusk, 0, 1);
+    sky.dusk += Math.sign(sky.duskTarget - sky.dusk) * dt / sky.fade; sky.dusk = clamp(sky.dusk, 0, 1);
     const k = sky.dusk;
     sky.top.lerpColors(DAY.top, DUSK.top, k); sky.hor.lerpColors(DAY.hor, DUSK.hor, k); sky.sun.lerpColors(DAY.sun, DUSK.sun, k);
     sunLight.color.lerpColors(DAY.light, DUSK.light, k); hemi.color.lerpColors(DAY.hemi, DUSK.hemi, k);
