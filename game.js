@@ -1333,16 +1333,19 @@ function lobbyTick(){
   }
   const waited = (performance.now() - net.lobbyAt) / 1000;
   if (!net.up && !net.fallback && waited > 3.5) { startFallback(); return; }
-  if (net.fallback === 'trying') return;
+  if (net.fallback === 'trying' && waited < 8) return;
   if (waited > 4.5) { toast(net.ctl && ctlFresh(net.ctl) ? 'Free play! Your best run still counts.' : 'No big screen running. Starting now!', 2400); beginRun(3.4); }
 }
 async function startFallback(){
   // the brokers' ports may be blocked on this network: ask ntfy (port 443) whether a big screen is waiting
+  // give up after 3 seconds: on some venue Wi-Fi this request hangs instead of failing, and the phone would sit on "Finding the big screen…"
   net.fallback = 'trying';
+  const quit = new AbortController(), giveUp = setTimeout(() => quit.abort(), 3000);
   try {
-    const r = await fetch(`${NTFY}${CTL_TOPIC}/json?poll=1&since=10m`, { cache: 'no-store' });
+    const r = await fetch(`${NTFY}${CTL_TOPIC}/json?poll=1&since=10m`, { cache: 'no-store', signal: quit.signal });
     if (r.ok) for (const line of (await r.text()).split('\n')) { try { const m = JSON.parse(line); if (m.event === 'message') { const d = JSON.parse(m.message); if (d.type === 'ctl') onCtl(d); } } catch {} }
   } catch {}
+  clearTimeout(giveUp);
   if (state.mode === 'lobby' && (hostWaiting() || liveStartAt())) {
     net.fallback = ntfyStream(CTL_TOPIC, { since: '30s', onMessage: m => { try { const d = JSON.parse(m.message); if (d.type === 'ctl') onCtl(d); } catch {} } });
   } else net.fallback = 'none';
