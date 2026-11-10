@@ -111,10 +111,43 @@ li.up{animation:up .7s ease-out}
 #sogAlert.show{animation:n1 2.8s ease-out both}
 #sogAlert div{font-family:var(--display);font-weight:600;font-size:13vh;color:#fff;text-transform:uppercase;text-shadow:0 1.2vh 0 #C9361A,0 0 6vh rgba(255,90,60,.7);text-align:center;line-height:1}
 #sogAlert p{font-weight:700;font-size:4vh;color:var(--sun);text-align:center;margin:1.4vh 0 0}
-.confetti{position:fixed;top:-4vh;width:1.4vh;height:2.2vh;border-radius:.3vh;pointer-events:none;z-index:6;animation:fall linear forwards}
+.confetti{position:fixed;top:-4vh;width:1.4vh;height:2.2vh;border-radius:.3vh;pointer-events:none;z-index:8;animation:fall linear forwards}
+/* ---- Golden Rush: the last 10 seconds ---- */
+body.rush::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:4;box-shadow:inset 0 0 0 1.2vh var(--sun),inset 0 0 2vh .5vh rgba(255,212,71,.5);animation:rushPulse .9s ease-in-out infinite alternate}
+@keyframes rushPulse{to{box-shadow:inset 0 0 0 1.2vh var(--sun),inset 0 0 8vh 2.4vh rgba(255,212,71,.85)}}
+body.rush .clockrow{gap:5vw}
+body.rush #clock{color:var(--sun)}
+#clock{transform-origin:left 80%}
+#clock.tp{animation:tp .55s ease-out}
+@keyframes tp{0%{transform:scale(1.15);text-shadow:0 0 4vh rgba(255,212,71,.9)}100%{transform:none}}
+#rushAlert,#sogAlert{background:linear-gradient(to bottom, rgba(20,33,92,0) 20%, rgba(20,33,92,.94) 32%, rgba(20,33,92,.94) 68%, rgba(20,33,92,0) 80%)}
+#rushAlert{opacity:0}
+#rushAlert.show{animation:n1 2.8s ease-out both}
+#rushAlert div{font-family:var(--display);font-weight:600;font-size:15vh;color:var(--sun);text-transform:uppercase;text-shadow:0 1.2vh 0 #C9361A,0 0 7vh rgba(255,212,71,.85);text-align:center;line-height:1}
+#rushAlert p{font-family:var(--body);text-transform:none;font-weight:700;font-size:4.6vh;color:#fff;text-align:center;margin:1.6vh 0 0;text-shadow:0 .4vh 1vh rgba(20,33,92,.8)}
+body.final #scanBox,body.final .readyrow,body.final #names{display:none}
+/* ---- room recap, before the final top 10 ---- */
+#recap{position:fixed;inset:0;z-index:7;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 25%, #3552F2, #1B2FB8 60%, #0F1C78);opacity:0;pointer-events:none;transition:opacity .6s}
+#recap.show{opacity:1;pointer-events:auto;cursor:pointer}
+.rc{width:min(92vw,175vh);text-align:center;display:flex;flex-direction:column;gap:4.5vh;align-items:center}
+.rc .eyebrow{font-weight:700;letter-spacing:.3em;text-transform:uppercase;font-size:3vh;color:var(--sun)}
+.rc h2{font-family:var(--display);font-weight:600;font-size:8vh;line-height:1.02;margin:1vh 0 0;color:#fff;text-shadow:0 .8vh 0 rgba(20,33,92,.6)}
+.rstats{display:grid;grid-template-columns:repeat(3,1fr);gap:2.6vw;width:100%}
+.rs{background:rgba(20,33,92,.55);border:.45vh solid rgba(255,212,71,.85);border-radius:3vh;padding:3.2vh 1.5vw;opacity:0}
+.rs.in{animation:rsIn .6s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes rsIn{from{opacity:0;transform:translateY(5vh) scale(.85)}to{opacity:1;transform:none}}
+.rs b{display:block;font-family:var(--display);font-weight:600;font-size:16vh;line-height:1;color:var(--sun);font-variant-numeric:tabular-nums}
+.rs span{display:block;font-weight:700;font-size:3.6vh;margin-top:1.2vh;color:#fff}
+.reveal{opacity:0;min-height:16vh}
+.reveal.in{animation:rvIn .9s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes rvIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+.reveal .r1{font-family:var(--display);font-weight:600;font-size:8vh;color:#fff;line-height:1.05;text-shadow:0 .8vh 0 rgba(20,33,92,.6)}
+.reveal .r1 em{font-style:normal;color:var(--sun)}
+.reveal .r2{font-weight:700;font-size:3.2vh;color:var(--mist);margin-top:2vh}
+.rskip{position:fixed;right:2vw;bottom:2vh;font-size:1.7vh;font-weight:700;color:rgba(255,251,242,.4)}
 @keyframes fall{to{transform:translateY(112vh) rotate(720deg)}}
 .phasechip{font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:clamp(12px,1.8vh,20px);margin-top:.6vh;color:#C9361A}
-@media (prefers-reduced-motion: reduce){ .startbtn,.nchip,.tk,#newOne.show,#sogAlert.show{animation-duration:.01s !important} .confetti{display:none} }
+@media (prefers-reduced-motion: reduce){ .startbtn,.nchip,.tk,#newOne.show,#sogAlert.show,#rushAlert.show,.rs.in,.reveal.in,#clock.tp{animation-duration:.01s !important} body.rush::after{animation:none} .confetti{display:none} }
 </style>
 </head>
 <body>
@@ -157,6 +190,19 @@ li.up{animation:up .7s ease-out}
 <div class="over"><div id="bigCount" aria-live="assertive"></div></div>
 <div class="over" id="newOne" aria-live="assertive"><div><div class="n1">New #1</div><div class="nm" id="newName"></div><div class="sc" id="newScore"></div></div></div>
 <div class="over" id="sogAlert"><div><div>The Great Sog<br>is here!</div><p>Everyone: pop him for +400</p></div></div>
+<div class="over" id="rushAlert" aria-live="assertive"><div><div>Golden Rush!</div><p>Double points for the last 10 seconds</p></div></div>
+<div id="recap" aria-live="polite">
+  <div class="rc">
+    <div><div class="eyebrow" id="rcPlayers"></div><h2>Here’s what this room did in one minute</h2></div>
+    <div class="rstats">
+      <div class="rs" id="rs0"><b>0</b><span>soggies popped</span></div>
+      <div class="rs" id="rs1"><b>0</b><span>Golden Rings grabbed</span></div>
+      <div class="rs" id="rs2"><b>0</b><span>Great Sogs popped</span></div>
+    </div>
+    <div class="reveal" id="rcReveal"><div class="r1" id="rcLine"></div><div class="r2">Now for the top 10.</div></div>
+  </div>
+  <div class="rskip">Click to skip</div>
+</div>
 <div class="tools">
   <button type="button" id="addBtn">Add a score by hand</button>
   <button type="button" id="resetBtn">New round</button>
@@ -186,14 +232,17 @@ function checkCode(id, name, score){ let h = 2166136261; for (const ch of `${id}
 const LS = { get(k, d){ try { const v = localStorage.getItem('ckb:' + TOPIC + ':' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v){ try { localStorage.setItem('ckb:' + TOPIC + ':' + k, JSON.stringify(v)); } catch {} } };
 const HERO = { frosted: ['#2340E8', '#FF5A3C'], cocoa: ['#7A4524', '#FFD447'], berry: ['#A43FD6', '#FF6FA0'] };
 const hdot = h => { const c = HERO[h] || HERO.frosted; return `<i class="hdot" style="--c:${c[0]};--k:${c[1]}"></i>`; };
-const RUN = 60, BOSS_AT = 30, CINE = 2.9;          // must match the game
+const RUN = 60, BOSS_AT = 30, CINE = 2.9, RUSH_AT = 10;          // must match the game
+// The last line of the room recap. Change it here, or for one screening add ?reveal=… to the board's address.
+const REVEAL = params.get('reveal') || 'This whole game was built with <em>AI</em>.';
 
 /* ---------- state ---------- */
 let round = LS.get('round', null) || uid(6); LS.set('round', round);
 let phase = 'lobby', startAt = 0, game = null, lastCtl = null;
 let resetAt = LS.get('resetAt', 0), manual = LS.get('manual', []);
 const best = new Map();       // id -> { name, hero, score, time, fresh }  (finished runs; best counts)
-const live = new Map();       // id -> { name, hero, status, score, pops, t }  (this round, from phones)
+const live = new Map();       // id -> { name, hero, status, score, pops, rings, gold, boss, game, t, rt }  (this round, from phones)
+const finals = new Map();     // id -> { pops, rings, gold, boss }  final scores from the shared game, for the room recap
 const ntfySeen = new Set();
 let mqttUp = false, ntfyUp = false;
 
@@ -210,6 +259,9 @@ function sfx(name){
   if (name === 'roar') { tone('sawtooth', 110, t, 1.2, 0.16, 50); tone('sine', 120, t, 1.4, 0.4, 28); }
   if (name === 'pop') tone('sine', 720, t, 0.14, 0.12, 200);
   if (name === 'end') [84, 79, 76, 72].forEach((m, i) => tone('square', N(m), t + i * 0.1, 0.3, 0.09));
+  if (name === 'rush') { [67, 71, 74, 79, 83, 86, 91, 95].forEach((m, i) => tone('square', N(m), t + i * 0.05, 0.25, 0.08)); tone('triangle', N(43), t, 1.4, 0.25); tone('sine', 160, t, 0.8, 0.3, 640); }
+  if (name === 'tick') tone('square', N(88), t, 0.03, 0.04);
+  if (name === 'whoosh') { tone('sine', 220, t, 0.5, 0.18, 880); tone('triangle', N(60), t + 0.1, 0.6, 0.12); }
 }
 $('soundBtn').textContent = soundOn ? 'Sound on' : 'Sound off';
 $('soundBtn').addEventListener('click', () => { soundOn = !soundOn; LS.set('sound', soundOn); $('soundBtn').textContent = soundOn ? 'Sound on' : 'Sound off'; unlock(); });
@@ -242,7 +294,7 @@ function onMessage(ch, d, retained){
     const id = String(d.id || ch.slice(2)).slice(0, 24), prev = live.get(id);
     if (prev && prev.t > d.t) return;
     const isNew = !prev;
-    live.set(id, { name: cleanName(d.name) || 'Sir Crunch', hero: d.hero, status: d.status, score: Math.max(0, Math.min(100000, Math.floor(+d.score || 0))), pops: Math.max(0, Math.floor(+d.pops || 0)), t: d.t || Date.now() });
+    live.set(id, { name: cleanName(d.name) || 'Sir Crunch', hero: d.hero, status: d.status, score: Math.max(0, Math.min(100000, Math.floor(+d.score || 0))), pops: count(d.pops), rings: count(d.rings), gold: count(d.gold), boss: d.boss ? 1 : 0, game: d.game || null, t: d.t || Date.now(), rt: Date.now() });
     if (isNew && d.status === 'lobby' && phase === 'lobby') sfx('pop');
     scheduleRender(); return;
   }
@@ -258,6 +310,7 @@ function acceptScore(d, time){
   if (checkCode(String(d.id), String(d.name), score) !== d.chk) return false;
   const id = 'p:' + d.id, name = cleanName(d.name) || 'Sir Crunch', prev = best.get(id);
   if (!prev || score > prev.score) best.set(id, { name, hero: d.hero, score, time, fresh: Date.now() });
+  if (inGame(d.game, time * 1000)) finals.set(String(d.id).slice(0, 24), { pops: count(d.pops), rings: count(d.rings), gold: count(d.gold), boss: d.boss ? 1 : 0 });
   scheduleRender(); return true;
 }
 // durable scores (and New-round markers) from ntfy
@@ -293,6 +346,19 @@ function rows(){
   for (const m of manual) if (m.time >= resetAt) map.set(m.key, { k: m.key, name: m.name, score: m.score, time: m.time, fresh: m.fresh || 0 });
   return [...map.values()].sort((a, b) => b.score - a.score || a.time - b.time);
 }
+// The room recap counts the shared game only: phones tag their messages with its id. Phones without
+// one (older code, or a phone that started on its own) count if they reported after the start.
+const count = v => Math.max(0, Math.min(9999, Math.floor(+v || 0)));
+function inGame(g, at){ return !!startAt && (g ? g === game : at >= startAt - 1000); }
+function gameStats(){
+  const per = new Map();
+  const add = (id, v) => { const p = per.get(id) || { pops: 0, rings: 0, gold: 0, boss: 0 }; for (const k in p) p[k] = Math.max(p[k], v[k] || 0); per.set(id, p); };
+  for (const [id, v] of live) if ((v.status === 'play' || v.status === 'done') && inGame(v.game, v.rt)) add(id, v);
+  for (const [id, v] of finals) add(id, v);
+  const s = { players: per.size, pops: 0, rings: 0, boss: 0 };
+  for (const p of per.values()) { s.pops += p.pops; s.rings += p.rings + p.gold; s.boss += p.boss; }
+  return s;
+}
 function readyCount(){ let n = 0; const now = Date.now(); for (const v of live.values()) if (v.status === 'lobby' && now - v.t < 15 * 60000) n++; return n; }
 let lastHtml = '', lastLeader = null, leaderShownAt = 0, prevRank = new Map(), renderQueued = false;
 function scheduleRender(){ if (!renderQueued) { renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(); }); } }
@@ -320,8 +386,7 @@ function render(){
   const nh = names.map(v => `<span class="nchip">${hdot(v.hero)}${esc(v.name)}</span>`).join('');
   if ($('names').dataset.h !== nh) { $('names').innerHTML = nh; $('names').dataset.h = nh; }
   // room counter
-  let pops = 0; for (const v of live.values()) pops += v.pops || 0;
-  roomTarget = pops;
+  roomTarget = phase === 'live' || phase === 'final' ? gameStats().pops : 0;
   // NEW #1
   if ((phase === 'live' || phase === 'final') && top[0] && top[0].score >= 50 && top[0].k !== lastLeader) {
     const first = lastLeader === null; lastLeader = top[0].k;
@@ -330,6 +395,7 @@ function render(){
 }
 let pendingLeader = null;
 function newLeader(r, label = 'New #1'){
+  if (recap.on) { pendingLeader = null; return; }        // the recap is on screen; the top score comes right after it
   if (Date.now() - leaderShownAt < 3600) { pendingLeader = r; return; }
   leaderShownAt = Date.now(); pendingLeader = null;
   $('newOne').querySelector('.n1').textContent = label; $('newName').textContent = r.name; $('newScore').textContent = r.score.toLocaleString() + ' points';
@@ -344,10 +410,13 @@ function confetti(n){
 
 /* ---------- the show ---------- */
 let roomShown = 0, roomTarget = 0, lastBeep = null, sogShown = false, endShown = false;
+let rushOn = false, rushSec = null, timeUpShown = false;
+const recap = { on: false, t0: 0, step: -1, lastTick: 0, stats: null };
 function showPhase(){
   $('lobbyBox').classList.toggle('hidden', phase === 'count' || phase === 'live');
   $('liveBox').classList.toggle('hidden', !(phase === 'count' || phase === 'live' || phase === 'final'));
   $('scanBox').classList.toggle('hidden', phase === 'live');
+  document.body.classList.toggle('final', phase === 'final');      // the final screen: no QR code or ready count, just results
   $('boardTitle').textContent = phase === 'final' ? 'Final results' : phase === 'live' ? 'Live leaderboard' : 'Leaderboard';
   $('phaseChip').textContent = phase === 'final' ? 'Top 10 win the book' : phase === 'live' ? 'Updating as you play' : 'Top 10 win a prize';
   $('startBtn').textContent = phase === 'final' ? 'Open the lobby for another game' : phase === 'lobby2' ? 'Start the game for everyone' : 'Start the game for everyone';
@@ -370,11 +439,55 @@ function loop(){
     const e = (now - startAt) / 1000, tl = timeLeft(e);
     $('clock').textContent = fmt(tl); $('clockStat').classList.toggle('low', tl <= 10);
     if (!sogShown && e >= RUN - BOSS_AT) { sogShown = true; const el = $('sogAlert'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); sfx('roar'); }
-    if (e >= RUN + CINE + 1) { phase = 'final'; sfx('end'); showPhase(); publishCtl(); postCtlNtfy(true); setTimeout(() => { const t = rows()[0]; if (t) { leaderShownAt = 0; newLeader(t, 'Top score'); } }, 6000); }
+    // Golden Rush: the phones start it from their own clocks at 10 seconds left; the big screen marks the same moment
+    if (!rushOn && e > RUN - BOSS_AT + CINE && tl <= RUSH_AT) { rushOn = true; document.body.classList.add('rush'); const el = $('rushAlert'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); sfx('rush'); }
+    const sec = Math.ceil(tl);
+    if (rushOn && sec !== rushSec && sec >= 1) { rushSec = sec; const c = $('clock'); c.classList.remove('tp'); void c.offsetWidth; c.classList.add('tp'); if (sec <= 5) sfx('beep'); }
+    if (!timeUpShown && tl <= 0) { timeUpShown = true; bigCount('Time’s up!', true); }
+    if (e >= RUN + CINE + 1) { phase = 'final'; sfx('end'); document.body.classList.remove('rush'); showPhase(); publishCtl(); postCtlNtfy(true); setTimeout(startRecap, 900); }
   }
-  if (pendingLeader && Date.now() - leaderShownAt > 3600) newLeader(pendingLeader);
+  if (recap.on) updateRecap();
+  if (pendingLeader && !recap.on && Date.now() - leaderShownAt > 3600) newLeader(pendingLeader);
   if (roomShown !== roomTarget) { roomShown += Math.max(1, Math.ceil((roomTarget - roomShown) * 0.12)) * Math.sign(roomTarget - roomShown); if (Math.abs(roomTarget - roomShown) < 1) roomShown = roomTarget; $('roomPops').textContent = Math.round(roomShown).toLocaleString(); }
 }
+/* ---------- room recap: what the whole room did, then the AI reveal, then the top 10 ---------- */
+// Timeline in seconds from the start of the recap. Click (or any key) skips to the top 10.
+const RC = { stats: [1.0, 2.7, 4.4], countFor: 1.6, reveal: 6.6, end: 14 };
+function showTopScore(){ const t = rows()[0]; if (t) { leaderShownAt = 0; newLeader(t, 'Top score'); } }
+function startRecap(){
+  if (phase !== 'final') return;
+  const s = gameStats();
+  if (!s.players) { setTimeout(showTopScore, 4000); return; }      // no phone stats reached the board: go straight to the top 10
+  recap.on = true; recap.t0 = performance.now(); recap.step = -1; recap.lastTick = 0;
+  $('rcPlayers').textContent = s.players === 1 ? '1 knight played' : `${s.players.toLocaleString()} knights played`;
+  $('rcLine').innerHTML = REVEAL;
+  for (let i = 0; i < 3; i++) { const el = $('rs' + i); el.classList.remove('in'); el.querySelector('b').textContent = '0'; }
+  $('rcReveal').classList.remove('in');
+  $('recap').classList.add('show'); sfx('whoosh');
+}
+function updateRecap(){
+  const t = (performance.now() - recap.t0) / 1000, s = gameStats(), vals = [s.pops, s.rings, s.boss];
+  $('rcPlayers').textContent = s.players === 1 ? '1 knight played' : `${s.players.toLocaleString()} knights played`;
+  let counting = false;
+  RC.stats.forEach((at, i) => {
+    if (t < at) return;
+    const el = $('rs' + i);
+    if (recap.step < i) { recap.step = i; el.classList.add('in'); sfx('pop'); }
+    const p = Math.min(1, (t - at) / RC.countFor), v = Math.round(vals[i] * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) counting = true;
+    const b = el.querySelector('b'), txt = v.toLocaleString(); if (b.textContent !== txt) b.textContent = txt;
+  });
+  if (counting && performance.now() - recap.lastTick > 70) { recap.lastTick = performance.now(); sfx('tick'); }
+  if (t >= RC.reveal && !$('rcReveal').classList.contains('in')) { $('rcReveal').classList.add('in'); sfx('fanfare'); confetti(90); }
+  if (t >= RC.end) endRecap();
+}
+function endRecap(){
+  if (!recap.on) return;
+  recap.on = false; $('recap').classList.remove('show');
+  setTimeout(showTopScore, 1100);
+}
+$('recap').addEventListener('click', endRecap);
+addEventListener('keydown', e => { if (recap.on && (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape' || e.key === 'ArrowRight')) { e.preventDefault(); endRecap(); } });
 // host heartbeat so phones know a big screen is waiting
 setInterval(() => { if (phase === 'lobby') { publishCtl(); postCtlNtfy(false); } else if (phase === 'final') publishCtl(); }, 4000);
 setInterval(render, 1000);
@@ -383,6 +496,7 @@ $('startBtn').addEventListener('click', () => {
   if (phase === 'final') { phase = 'lobby'; startAt = 0; game = null; for (const v of live.values()) if (v.status !== 'lobby') v.status = 'old'; showPhase(); publishCtl(); postCtlNtfy(true); return; }
   if (phase !== 'lobby') return;
   game = uid(6); startAt = Date.now() + 5500; phase = 'count'; lastBeep = null; sogShown = false; lastLeader = null;
+  rushOn = false; rushSec = null; timeUpShown = false; finals.clear(); roomShown = 0;
   publishCtl(); postCtlNtfy(true); showPhase();
 });
 
@@ -392,7 +506,8 @@ $('resetBtn').addEventListener('click', async () => {
   if (Date.now() - armed > 3000) { armed = Date.now(); $('resetBtn').textContent = 'Click again to clear the board'; setTimeout(() => { $('resetBtn').textContent = 'New round'; }, 3000); return; }
   armed = 0; $('resetBtn').textContent = 'Starting a new round…';
   for (const id of live.keys()) relay.clear('p/' + id);
-  round = uid(6); LS.set('round', round); phase = 'lobby'; startAt = 0; game = null; live.clear(); best.clear(); manual = []; LS.set('manual', manual);
+  round = uid(6); LS.set('round', round); phase = 'lobby'; startAt = 0; game = null; live.clear(); best.clear(); finals.clear(); manual = []; LS.set('manual', manual);
+  if (recap.on) endRecap(); document.body.classList.remove('rush');
   resetAt = Math.floor(Date.now() / 1000); LS.set('resetAt', resetAt); lastLeader = null;
   publishCtl(); showPhase();
   try { await fetch('https://ntfy.sh/' + TOPIC, { method: 'POST', body: JSON.stringify({ v: 1, type: 'reset' }) }); } catch {}

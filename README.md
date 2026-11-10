@@ -54,8 +54,11 @@ All characters, places and story are original. Fonts: Fraunces and DM Sans (SIL 
 1. Open `board.html` on the big screen and click **Full screen**. Click anywhere once so its sounds can play.
 2. People scan the QR code, pick a knight (Frosted, Cocoa or Berry), type a name and press **Play**. Each phone says "You're in" and its name pops onto the big screen under **players ready**.
 3. When most phones are in, click **Start the game for everyone**. The big screen and every phone count down 3-2-1 together, everyone gets the same 1 minute, and the Great Sog arrives for everyone at the same moment.
-4. During the run the big screen shows a live top 10, a **NEW #1** banner with a fanfare when the lead changes, a feed of rings, power-ups and boss pops, and the room's total soggies popped. Final results appear about 1 minute 5 seconds after the start.
-5. To play again: click **Open the lobby for another game**, have people tap **Play again**, then **Start** again. Best runs still count. **New round** clears the board.
+4. During the run the big screen shows a live top 10, a **NEW #1** banner with a fanfare when the lead changes, a feed of rings, power-ups and boss pops, and the room's total soggies popped. With 10 seconds left, every phone and the big screen go into the **Golden Rush** together.
+5. When time runs out, the big screen shows a **room recap** for about 14 seconds: how many knights played, and the room's totals for soggies popped, Golden Rings grabbed and Great Sogs popped. It ends with "This whole game was built with AI." Then the final top 10 appears. Click the screen or press Space to skip the recap.
+6. To play again: click **Open the lobby for another game**, have people tap **Play again**, then **Start** again. Best runs still count. **New round** clears the board.
+
+To change the recap's last line, edit `REVEAL` near the top of the script in `board.html`, or add it to the board's address for one screening, for example `board.html?reveal=This whole game was built with AI in one weekend.`
 
 Phones that open the game when no big screen is waiting start on their own after a few seconds, and anyone can tap **Start on my own** in the lobby.
 
@@ -65,6 +68,7 @@ Phones that open the game when no big screen is waiting start on their own after
 
 - **Power-ups** (run over them): Sugar Rush (super speed with a rainbow trail), Giant Spoon (huge, double-power swings), Milk Magnet (coins fly to you). A Giant Spoon drops when the Great Sog arrives.
 - **Boss entrance**: the clock stops, the camera swings round in slow motion and a title card slams in.
+- **Golden Rush** (the last 10 seconds): everything scores double, small golden rings rain down around you (+50 each), and the screen glows gold. Each phone starts it from its own game clock, so it lands at the same moment for the whole room even on slow Wi-Fi.
 - **Polish**: confetti and slow motion on rings, crunchier pops, a big 10-second countdown at the end, bigger score pops.
 
 ## Round 1 live poll
