@@ -77,3 +77,7 @@ Phones that open the game when no big screen is waiting start on their own after
 - `votes.html` — the big-screen view: live bars for each answer. **New poll** (click twice) clears test votes before the session.
 
 Both use the same ntfy.sh relay as the leaderboard, on their own topic.
+
+## Snack Lab
+
+A second, separate booth game lives in [`snack-lab/`](snack-lab/README.md): invent a snack in 60 seconds, with its own big-screen leaderboard.
