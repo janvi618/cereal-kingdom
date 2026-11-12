@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snack Lab: the snack shelf</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="fonts.css">
+<style>
+:root{--blue:#2340E8;--blue2:#1B2FB8;--navy:#14215C;--cream:#FFFBF2;--sun:#FFD447;--coral:#FF5A3C;--mist:#E8ECFF;
+  --display:"Fraunces",Georgia,serif;--body:"DM Sans","Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%;overflow:hidden}
+body{font-family:var(--body);background:var(--blue);color:var(--cream);-webkit-font-smoothing:antialiased}
+h1,h2,p,ol{margin:0;padding:0}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+.wrap{height:100vh;display:grid;grid-template-columns:24vw 1fr 29vw;grid-template-rows:auto 1fr 24vh;gap:2.4vh 2vw;padding:3vh 2.4vw 0}
+.top{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:700;letter-spacing:.3em;text-transform:uppercase;font-size:2.4vh;color:var(--sun)}
+.count{font-weight:700;font-size:2.4vh;background:rgba(20,33,92,.35);border-radius:99px;padding:.9vh 1.6vw}
+.count b{color:var(--sun);font-variant-numeric:tabular-nums}
+/* left: the invitation */
+.join{display:flex;flex-direction:column;gap:1.7vh;min-height:0}
+.join h1{font-family:var(--display);font-weight:600;font-size:5.8vh;line-height:1.02;letter-spacing:-.01em}
+.join h1 em{font-style:normal;color:var(--sun)}
+.qr{background:#fff;border-radius:2.4vh;padding:1.2vh;width:min(100%,24vh);aspect-ratio:1;border:.6vh solid var(--sun)}
+.qr img{width:100%;height:100%;display:block}
+.join .scan{font-weight:700;font-size:3vh;line-height:1.2}
+.join .url{font-size:1.9vh;color:var(--mist);overflow-wrap:anywhere}
+.join .prize{font-weight:700;font-size:2.4vh;color:var(--sun)}
+/* middle: the spotlight */
+.spot{position:relative;background:var(--blue2);border-radius:3vh;padding:7.4vh 2vw 2.6vh;display:grid;grid-template-columns:auto 1fr;grid-template-rows:1fr auto;gap:2vh 2vw;align-items:center;min-height:0;overflow:hidden}
+.spot .tag{position:absolute;top:2vh;left:2vw;font-weight:700;letter-spacing:.24em;text-transform:uppercase;font-size:1.9vh;color:var(--navy);background:var(--sun);border-radius:99px;padding:.6vh 1.2vw}
+.spot .bag{height:38vh;display:flex}
+.spot .bag svg{height:100%;width:auto;aspect-ratio:220/300;overflow:visible;filter:drop-shadow(0 1.4vh 0 rgba(20,33,92,.35))}
+.spot.in .bag svg{animation:drop .8s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes drop{0%{transform:translateY(-90vh) rotate(-16deg)}70%{transform:translateY(0) rotate(3deg)}100%{transform:none}}
+.spot .info{min-width:0;display:flex;flex-direction:column;gap:1.6vh}
+.spot.in .info > *{animation:rise .5s both}
+.spot.in .info > *:nth-child(2){animation-delay:.25s}.spot.in .info > *:nth-child(3){animation-delay:.4s}.spot.in .info > *:nth-child(4){animation-delay:.55s}.spot.in .say{animation:rise .5s .75s both}
+@keyframes rise{from{opacity:0;transform:translateY(2vh)}to{opacity:1;transform:none}}
+.spot .by{font-weight:700;font-size:2.6vh;color:var(--mist)}
+.spot .name{font-family:var(--display);font-weight:600;font-size:5.2vh;line-height:1.05;color:var(--sun);overflow-wrap:break-word}
+.spot .name.sm{font-size:3.6vh;color:var(--cream)}
+.stars{display:flex;gap:.6vh}
+.stars svg{width:4.4vh;height:4.4vh}
+.stars path{fill:rgba(255,251,242,.2)}
+.stars .on path{fill:var(--sun)}
+.spot .pts{font-family:var(--display);font-weight:600;font-size:5vh;line-height:1}
+.spot .pts small{font-family:var(--body);font-weight:700;font-size:1.8vh;letter-spacing:.14em;text-transform:uppercase;margin-left:.8vw}
+.spot .say{grid-column:1 / -1;display:flex;gap:1vw;align-items:center}
+.spot .say .av{width:7vh;height:7vh;flex:none}
+.spot .say .av svg{width:100%;height:100%;border-radius:50%;box-shadow:0 0 0 .4vh var(--cream)}
+.spot .say p{background:var(--cream);color:var(--navy);border-radius:.6vh 2vh 2vh 2vh;padding:1.2vh 1.2vw;font-weight:700;font-size:2.3vh;line-height:1.3}
+.spot .say p span{display:block;font-weight:400;font-size:1.7vh;color:#4B578C;margin-top:.4vh}
+/* right: the leaderboard */
+.lead{display:flex;flex-direction:column;min-height:0}
+.lead h2{font-size:2vh;letter-spacing:.24em;text-transform:uppercase;font-weight:700;margin:0 .4vw 1.2vh}
+.lb{list-style:none;display:flex;flex-direction:column;gap:.75vh;min-height:0}
+.lb li{display:flex;align-items:center;gap:.9vw;background:rgba(255,251,242,.12);border-radius:1.4vh;padding:0 1vw;height:4.75vh;font-size:2.15vh;cursor:pointer}
+.lb .rk{width:1.8vw;font-weight:700;text-align:center;color:var(--sun);font-variant-numeric:tabular-nums}
+.lb .sw{width:1.9vh;height:2.5vh;border-radius:.4vh;flex:none;box-shadow:inset 0 0 0 1px rgba(20,33,92,.3)}
+.lb .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .sc{font-weight:700;font-variant-numeric:tabular-nums}
+.lb li.new{background:var(--sun);color:var(--navy);animation:flash 1s ease-out}
+.lb li.new .rk{color:var(--navy)}
+@keyframes flash{0%{transform:scale(1.06)}100%{transform:none}}
+.lb li.empty{justify-content:center;opacity:.75;cursor:default}
+.lb li .rm{background:var(--coral);color:#fff;font-weight:700;border-radius:99px;padding:.3vh .9vw;font-size:1.7vh}
+/* bottom: the shelf */
+.shelf{grid-column:1 / -1;position:relative;display:flex;align-items:flex-end;gap:1.3vw;padding:0 1vw 2.6vh;overflow:hidden}
+.shelf::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2.6vh;background:var(--navy)}
+.shelf::before{content:'';position:absolute;left:0;right:0;bottom:2.6vh;height:.5vh;background:var(--sun);z-index:1}
+.shelf .it{flex:none;height:19vh;text-align:center;animation:slide .6s cubic-bezier(.2,1.3,.4,1) both}
+.shelf .it svg{height:100%;width:auto;aspect-ratio:220/300;display:block}
+@keyframes slide{from{opacity:0;transform:translateX(-8vw) rotate(-8deg)}to{opacity:1;transform:none}}
+.shelf .none{font-size:2.4vh;color:var(--mist);padding-bottom:6vh;margin:auto}
+.staff{position:fixed;right:1vw;bottom:.3vh;z-index:5;display:flex;gap:1vw;align-items:center;font-size:1.5vh;color:rgba(255,251,242,.55)}
+.staff button{text-decoration:underline;padding:.3vh .3vw}
+.staff button:hover,.staff button.arm{color:var(--sun)}
+.staff .dot{width:1vh;height:1vh;border-radius:50%;background:#8B93B8;display:inline-block;margin-right:.4vw}
+.staff .dot.up{background:#5FE0A8}
+.confetti{position:fixed;top:-3vh;width:1.3vh;height:2vh;border-radius:.3vh;pointer-events:none;z-index:8;animation:fall linear forwards}
+@keyframes fall{to{transform:translate(var(--dx),108vh) rotate(var(--rot))}}
+@media (prefers-reduced-motion: reduce){ .confetti{display:none} .spot.in .bag svg,.shelf .it{animation:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="logo">Snack Lab</div><div class="count" id="count"></div></div>
+  <div class="join">
+    <h1>Invent a snack in <em>60 seconds</em></h1>
+    <div class="qr" id="qrBox"><img src="qr.svg" alt="QR code to play Snack Lab"></div>
+    <div class="scan">Scan to play on your phone</div>
+    <div class="prize" id="prize"></div>
+    <div class="url" id="url"></div>
+  </div>
+  <div class="spot" id="spot" aria-live="polite">
+    <div class="tag" id="tag"></div>
+    <div class="bag" id="spotBag"></div>
+    <div class="info" id="spotInfo"></div>
+    <div class="say" id="spotSay"></div>
+  </div>
+  <div class="lead"><h2>Leaderboard</h2><ol class="lb" id="lb"></ol></div>
+  <div class="shelf" id="shelf"></div>
+</div>
+<div class="staff"><span><i class="dot" id="dot"></i><span id="link">Connecting</span></span><button id="snd">Sound on</button><button id="full">Full screen</button><button id="clear">Clear board</button></div>
+
+<script type="module">
+import * as C from './core.js';
+const P = new URLSearchParams(location.search), $ = id => document.getElementById(id), esc = C.esc;
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const STAR = '<svg viewBox="0 0 24 24"><path d="M12 1.8l3.1 6.5 7.1.9-5.2 4.9 1.3 7-6.3-3.4-6.3 3.4 1.3-7L1.8 9.2l7.1-.9z"/></svg>';
+
+/* ---------- sound: off until someone clicks "Sound on" ---------- */
+let ac = null;
+function tone(m, t0, dur, vol = 0.09, type = 'square'){ if (!ac) return; const t = ac.currentTime + t0, o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = 440 * 2 ** ((m - 69) / 12);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + 0.04); }
+const chime = big => { (big ? [72, 76, 79, 84, 79, 84, 88] : [76, 79, 84]).forEach((m, i) => tone(m, i * 0.1, 0.22)); if (big) tone(48, 0, 0.9, 0.1, 'triangle'); };
+$('snd').addEventListener('click', () => { if (ac) { ac.close(); ac = null; } else { const A = window.AudioContext || window.webkitAudioContext; if (A) { ac = new A(); chime(false); } } $('snd').textContent = ac ? 'Sound off' : 'Sound on'; });
+$('full').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); });
+
+/* ---------- the board ---------- */
+let queue = [], lastShow = 0, cycle = 0, freshId = null, showing = null, armed = null;
+const store = C.createStore({ room: P.get('room') || 'fair', local: P.has('local'), role: 'display', brokers: P.get('brokers') ? P.get('brokers').split(',') : undefined, ntfy: P.get('ntfy') || undefined,
+  onChange: paint, onNew: e => { queue.push(e); if (queue.length > 6) queue.shift(); },
+  onStatus: s => { $('dot').classList.toggle('up', s.up > 0); $('link').textContent = s.up > 0 ? 'Live' : 'Reconnecting'; } });
+if (P.has('local')) $('link').textContent = 'This device only';
+
+function paint(){
+  const rows = store.top(10), n = store.count();
+  $('count').innerHTML = n ? `<b>${fmt(n)}</b> snack${n === 1 ? '' : 's'} invented` : 'Be the first to invent one';
+  $('lb').innerHTML = rows.length ? rows.map((e, i) => `<li data-id="${e.id}" class="${e.id === freshId ? 'new' : ''}"><span class="rk">${i + 1}</span><i class="sw" style="background:${C.swatchOf(e)}"></i><span class="nm"><b>${esc(e.p)}</b> · ${esc(e.s)}</span>` +
+    (armed === e.id ? '<button class="rm">Remove</button>' : `<span class="sc">${fmt(e.sc)}</span>`) + '</li>').join('') : '<li class="empty">No snacks yet</li>';
+  const shelf = store.recent(16), have = new Map([...$('shelf').children].map(el => [el.dataset.id, el]));
+  if (!shelf.length) { $('shelf').innerHTML = '<div class="none">Every snack invented today lands on this shelf.</div>'; return; }
+  const frag = document.createDocumentFragment();
+  for (const e of shelf) { let el = have.get(e.id); if (!el) { el = document.createElement('div'); el.className = 'it'; el.dataset.id = e.id; el.innerHTML = C.bagSVG(C.snackOf(e), { title: `${e.p}’s ${e.s}` }); } else el.style.animation = 'none'; frag.appendChild(el); }
+  $('shelf').replaceChildren(frag);
+}
+// Staff: click a row, then "Remove", to take a name off the board.
+$('lb').addEventListener('click', ev => { const li = ev.target.closest('li[data-id]'); if (!li) return; const id = li.dataset.id;
+  if (ev.target.closest('.rm')) { armed = null; store.remove(id); return; }
+  armed = armed === id ? null : id; paint(); if (armed) setTimeout(() => { if (armed === id) { armed = null; paint(); } }, 3500); });
+const clearBtn = $('clear'); let clearT = 0;
+clearBtn.addEventListener('click', () => {
+  if (clearBtn.classList.contains('arm')) { clearTimeout(clearT); clearBtn.classList.remove('arm'); clearBtn.textContent = 'Clear board'; queue = []; showing = null; store.reset(); demo(); return; }
+  clearBtn.classList.add('arm'); clearBtn.textContent = 'Click again to clear';
+  clearT = setTimeout(() => { clearBtn.classList.remove('arm'); clearBtn.textContent = 'Clear board'; }, 3000);
+});
+
+/* ---------- the spotlight ---------- */
+function confetti(n){
+  const cols = ['#FFD447', '#FF5A3C', '#FFFBF2', '#9FE0C6', '#C9C4F4'];
+  for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.className = 'confetti'; c.style.left = Math.random() * 100 + 'vw'; c.style.background = cols[i % cols.length];
+    c.style.setProperty('--dx', (Math.random() * 24 - 12) + 'vw'); c.style.setProperty('--rot', (Math.random() * 900 - 450) + 'deg'); c.style.animationDuration = 1.8 + Math.random() * 1.8 + 's'; c.style.animationDelay = Math.random() * 0.6 + 's';
+    document.body.appendChild(c); setTimeout(() => c.remove(), 4600); }
+}
+function spotlight(e, tag){
+  showing = e.id; lastShow = Date.now();
+  const spot = $('spot'); spot.classList.remove('in'); void spot.offsetWidth;
+  $('tag').textContent = tag;
+  $('spotBag').innerHTML = C.bagSVG(C.snackOf(e), { title: `${e.p}’s ${e.s}` });
+  $('spotInfo').innerHTML = `<div class="by">${esc(e.p)}’s</div><div class="name">${esc(e.s)}</div>` +
+    `<div class="stars" role="img" aria-label="${e.st} out of 5 stars">${[0, 1, 2, 3, 4].map(i => STAR.replace('<svg', i < e.st ? '<svg class="on"' : '<svg')).join('')}</div>` +
+    `<div class="pts">${fmt(e.sc)}<small>points</small></div>`;
+  $('spotSay').innerHTML = `<div class="av">${C.avatarSVG(e.b, C.moodFor(e.st))}</div><p>“${esc(C.quoteFor(e.st, e.f))}”<span>${esc(C.BRIEFS[e.b].who)}</span></p>`;
+  spot.classList.add('in');
+}
+function demo(){                                             // nothing on the board yet: show what a snack looks like
+  showing = null; lastShow = Date.now();
+  const spot = $('spot'); spot.classList.remove('in'); void spot.offsetWidth;
+  $('tag').textContent = 'Yours could be here';
+  $('spotBag').innerHTML = C.bagSVG(C.randomSnack(), { title: 'An example snack' });
+  $('spotInfo').innerHTML = `<div class="by">How it works</div><div class="name sm">Read the brief. Build the snack. Name it.</div>`;
+  $('spotSay').innerHTML = `<div class="av">${C.avatarSVG(C.rnd(5), 'happy')}</div><p>A taste tester scores how well your snack fits the brief.<span>The top scores go on the board.</span></p>`;
+  spot.classList.add('in');
+}
+setInterval(() => {
+  const since = Date.now() - lastShow;
+  if (queue.length && since > 4200) { const e = queue.shift(); freshId = e.id; paint(); spotlight(e, 'Just launched'); const rank = store.rank(e.id); chime(e.st >= 4 || rank === 1); if (e.st === 5 || rank === 1) confetti(110); setTimeout(() => { if (freshId === e.id) { freshId = null; paint(); } }, 6000); return; }
+  if (since < 8000) return;
+  const pool = store.top(10);
+  if (!pool.length) { demo(); return; }
+  const e = pool[cycle++ % pool.length], rank = store.rank(e.id);
+  spotlight(e, rank === 1 ? 'Top of the board' : `Number ${rank} on the board`);
+}, 500);
+
+/* ---------- the invitation ---------- */
+const playUrl = new URL('./', location.href); if (store.room !== 'fair') playUrl.searchParams.set('room', store.room);
+$('url').textContent = (playUrl.host + playUrl.pathname + playUrl.search).replace(/\/$/, '');
+$('prize').textContent = P.get('prize') || 'Top scores win a prize';
+if (store.room !== 'fair' || P.has('local')) $('qrBox').hidden = true;      // the printed code points at the main room
+paint(); demo(); lastShow = Date.now() - 5000;
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const el of [...$('shelf').children]) el.remove(); paint(); });
+if (P.has('debug')) window.SB = { store, C, queue: () => queue };
+</script>
+</body>
+</html>
