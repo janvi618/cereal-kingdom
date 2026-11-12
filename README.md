@@ -81,3 +81,7 @@ Both use the same ntfy.sh relay as the leaderboard, on their own topic.
 ## Snack Lab
 
 A second, separate booth game lives in [`snack-lab/`](snack-lab/README.md): invent a snack in 60 seconds, with its own big-screen leaderboard.
+
+## Innovation quiz
+
+[`quiz/`](quiz/) is a three-question booth quiz. Each player gets 3 of the 10 questions at random, sees the answer and a short fact after each one, and ends on a score screen to show at the booth. To change the questions, edit the `QUESTIONS` list at the top of the script in `quiz/index.html` (the correct answer goes first). `quiz/qr.svg` and `quiz/qr.png` are QR codes for the quiz address.
